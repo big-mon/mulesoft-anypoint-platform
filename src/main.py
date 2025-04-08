@@ -34,3 +34,9 @@ class AnypointClient:
 if __name__ == "__main__":
     client = AnypointClient()
     print("Anypoint Platform Client initialized")
+    try:
+        token = client.get_access_token()
+        print("アクセストークンの取得に成功しました：")
+        print(f"Token: {token[:30]}...")
+    except Exception as e:
+        print(f"エラーが発生しました: {e}")
