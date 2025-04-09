@@ -104,26 +104,39 @@ async def main():
             results = await asyncio.gather(*tasks)
 
             # 結果を整理
-            for i in range(0, len(results), 2):
-                env = compact_applications[i // (2 * len(compact_applications[0]["apis"]))]
-                api = env["apis"][(i // 2) % len(env["apis"])]
-                policy_result = results[i]
-                contract_result = results[i + 1]
+            if not compact_applications or not compact_applications[0].get("apis"):
+                print("アプリケーション情報が見つかりません")
+                return
 
-                policies.append({
-                    "env_name": env["env_name"],
-                    "org_id": env["org_id"],
-                    "env_id": env["env_id"],
-                    "api_id": str(api["id"]),
-                    "policies": policy_result["policies"]
-                })
-                contracts.append({
-                    "env_name": env["env_name"],
-                    "org_id": env["org_id"],
-                    "env_id": env["env_id"],
-                    "api_id": str(api["id"]),
-                    "contracts": contract_result
-                })
+            api_count = 0
+            for env in compact_applications:
+                api_count += len(env["apis"])
+
+            if len(results) != 2 * api_count:
+                print(f"予期しない結果数です: {len(results)} (expected: {2 * api_count})")
+                return
+
+            result_index = 0
+            for env in compact_applications:
+                for api in env["apis"]:
+                    policy_result = results[result_index]
+                    contract_result = results[result_index + 1]
+                    result_index += 2
+
+                    policies.append({
+                        "env_name": env["env_name"],
+                        "org_id": env["org_id"],
+                        "env_id": env["env_id"],
+                        "api_id": str(api["id"]),
+                        "policies": policy_result["policies"]
+                    })
+                    contracts.append({
+                        "env_name": env["env_name"],
+                        "org_id": env["org_id"],
+                        "env_id": env["env_id"],
+                        "api_id": str(api["id"]),
+                        "contracts": contract_result
+                    })
 
         # ポリシー情報の出力
         if file_output and output_config.get_output_setting("policies"):
