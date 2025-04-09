@@ -1,9 +1,7 @@
 import os
-from dotenv import load_dotenv
-import aiohttp
-from aiohttp import ClientSession
 import asyncio
-
+from dotenv import load_dotenv
+from aiohttp import ClientSession
 
 class CloudHubClient:
     """CloudHub APIクライアント"""
@@ -18,7 +16,7 @@ class CloudHubClient:
         async def fetch_env_applications(session: ClientSession, env: dict) -> dict:
             url = f"{self._base_url}/cloudhub/api/v2/applications"
             headers = {'X-ANYPNT-ENV-ID': env['env_id'], 'Authorization': f'Bearer {self._token}'}
-            
+
             async with session.get(url, headers=headers) as response:
                 response.raise_for_status()
                 apis = await response.json()
@@ -28,7 +26,7 @@ class CloudHubClient:
                     'env_id': env['env_id'],
                     'apis': apis
                 }
-        
+
         async with ClientSession() as session:
             tasks = [fetch_env_applications(session, env) for env in self._environments]
             applications = await asyncio.gather(*tasks)
