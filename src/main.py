@@ -21,7 +21,7 @@ def main():
         token = auth_client.get_access_token()
         print("アクセストークンの取得に成功しました：")
     except Exception as e:
-        print(f"エラーが発生しました: {e}")
+        print(f"アクセストークンの取得時にエラーが発生しました: {e}")
 
     try:
         # API Platformクライアントの初期化
@@ -35,7 +35,7 @@ def main():
             environments.append({"name": env['name'], "id": env['id']})
 
     except Exception as e:
-        print(f"エラーが発生しました: {e}")
+        print(f"組織情報の取得時にエラーが発生しました: {e}")
 
 if __name__ == "__main__":
     main()
