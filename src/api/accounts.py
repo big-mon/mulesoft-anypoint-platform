@@ -17,8 +17,8 @@ class AccountsAPI:
         })
         self.__organization_id = os.getenv('ANYPOINT_ORGANIZATION_ID')
 
-    def get_organization(self):
-        """組織情報を取得"""
+    def get_organization_environments(self):
+        """組織内の環境の取得"""
         url = f"{self._base_url}/accounts/api/organizations/{self.__organization_id}/environments"
         payload = {
           'extended': False,

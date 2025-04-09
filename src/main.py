@@ -27,8 +27,8 @@ def main():
         # API Platformクライアントの初期化
         api_platform_client = AccountsAPI(token)
 
-        # 組織情報を取得
-        organization = api_platform_client.get_organization()
+        # 組織内の環境を取得
+        organization = api_platform_client.get_organization_environments()
         environments = []
         print("組織情報の取得に成功しました：")
         for env in organization['data']:
