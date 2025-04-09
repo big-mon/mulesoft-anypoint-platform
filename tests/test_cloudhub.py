@@ -43,15 +43,22 @@ async def test_get_applications(cloudhub_client):
     """アプリケーション取得のテスト"""
     mock_data = [
         {
-            "id": "test_app_id",
-            "name": "test_app",
-            "domain": "test-app",
-            "fullDomain": "test-app.cloudhub.io",
-            "status": "STARTED",
-            "muleVersion": "4.4.0",
-            "properties": {
-                "env": "test"
-            }
+            "env_name": "test_env",
+            "org_id": "test_org",
+            "env_id": "test_env_id",
+            "apis": [
+                {
+                    "id": "test_app_id",
+                    "name": "test_app",
+                    "domain": "test-app",
+                    "fullDomain": "test-app.cloudhub.io",
+                    "status": "STARTED",
+                    "muleVersion": "4.4.0",
+                    "properties": {
+                        "env": "test"
+                    }
+                }
+            ]
         }
     ]
 
@@ -64,8 +71,11 @@ async def test_get_applications(cloudhub_client):
         applications = await cloudhub_client.get_applications()
         assert len(applications) == 1
         assert applications[0]["env_name"] == "test_env"
-        assert applications[0]["domain"] == "test-app"
-        assert applications[0]["status"] == "STARTED"
+        assert applications[0]["org_id"] == "test_org"
+        assert applications[0]["env_id"] == "test_env_id"
+        assert len(applications[0]["apis"]) == 1
+        assert applications[0]["apis"][0]["domain"] == "test-app"
+        assert applications[0]["apis"][0]["status"] == "STARTED"
 
 
 @pytest.mark.asyncio
