@@ -11,7 +11,6 @@ class Config:
         self.__client_id = os.getenv('ANYPOINT_CLIENT_ID')
         self.__client_secret = os.getenv('ANYPOINT_CLIENT_SECRET')
         self._organization_id = os.getenv('ANYPOINT_ORGANIZATION_ID')
-        self._environment_id = os.getenv('ANYPOINT_ENVIRONMENT_ID')
         self._base_url = os.getenv('ANYPOINT_BASE_URL', 'https://anypoint.mulesoft.com')
 
     @property
@@ -21,6 +20,5 @@ class Config:
             self.__client_id,
             self.__client_secret,
             self._organization_id,
-            self._environment_id,
             self._base_url
         ])
