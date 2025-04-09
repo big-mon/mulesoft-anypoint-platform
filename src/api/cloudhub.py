@@ -1,7 +1,8 @@
 import os
 from dotenv import load_dotenv
-import requests
 import aiohttp
+from aiohttp import ClientSession
+import asyncio
 
 
 class CloudHubClient:
@@ -9,31 +10,26 @@ class CloudHubClient:
     def __init__(self, token, environments):
         load_dotenv()
         self._base_url = os.getenv('ANYPOINT_BASE_URL')
-        self.__session = requests.Session()
-        self.__session.headers.update({
-            'Authorization': f'Bearer {token}'
-        })
+        self._token = token
         self._environments = environments
 
-    def get_applications(self):
-        """アプリケーションの取得"""
-        # environmentsを全件ループしてアプリケーションを取得
-        applications = []
-        for env in self._environments:
+    async def get_applications(self):
+        """アプリケーションの取得（非同期）"""
+        async def fetch_env_applications(session: ClientSession, env: dict) -> dict:
             url = f"{self._base_url}/cloudhub/api/v2/applications"
-            unique_headers = {
-                'X-ANYPNT-ENV-ID': env['env_id']
-            }
-            headers = self.__session.headers.copy()
-            headers.update(unique_headers)
-            response = self.__session.get(url, headers=headers)
-            response.raise_for_status()
-
-            data = {
-                'env_name': env['name'],
-                'org_id': env['org_id'],
-                'env_id': env['env_id'],
-                'apis': response.json()
-            }
-            applications.append(data)
-        return applications
+            headers = {'X-ANYPNT-ENV-ID': env['env_id'], 'Authorization': f'Bearer {self._token}'}
+            
+            async with session.get(url, headers=headers) as response:
+                response.raise_for_status()
+                apis = await response.json()
+                return {
+                    'env_name': env['name'],
+                    'org_id': env['org_id'],
+                    'env_id': env['env_id'],
+                    'apis': apis
+                }
+        
+        async with ClientSession() as session:
+            tasks = [fetch_env_applications(session, env) for env in self._environments]
+            applications = await asyncio.gather(*tasks)
+            return applications
