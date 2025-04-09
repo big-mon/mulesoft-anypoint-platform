@@ -56,6 +56,9 @@ tests/                         # テストコード
 - API Manager APIとの通信処理
 - アプリケーション情報の取得
 - ポリシー設定の取得
+- Contracts情報の取得
+- アラート情報の取得
+- ティア情報の取得
 
 ### 2.3 api/runtime_manager.py
 - Runtime Manager APIとの通信処理
