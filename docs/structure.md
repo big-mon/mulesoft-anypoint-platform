@@ -15,13 +15,19 @@ src/
 │   └── runtime_manager.py     # Runtime Manager関連の処理
 └── utils/
     ├── __init__.py
-    ├── config.py              # 設定関連の処理
-    └── exceptions.py          # カスタム例外クラス
+    ├── exceptions.py          # カスタム例外クラス
+    ├── file_output.py         # ファイル出力処理
+    └── output_config.py       # 出力設定管理
+
+config/                        # 設定ファイル
+└── output_config.env          # 出力設定
 
 tests/                         # テストコード
 ├── __init__.py
 ├── test_auth.py
 ├── test_api_manager.py
+├── test_file_output.py
+├── test_output_config.py
 └── test_runtime_manager.py
 ```
 
@@ -31,6 +37,20 @@ tests/                         # テストコード
 - 認証関連の処理を集約
 - アクセストークンの取得と管理
 - トークンのキャッシュ機能
+
+### 2.2 utils/file_output.py
+- JSONファイルの出力処理
+- タイムスタンプベースの出力フォルダ管理
+
+### 2.3 utils/output_config.py
+- 出力設定の管理
+- 設定ファイル（output_config.env）の読み込み
+- 出力要否や出力ファイル名の制御
+
+### 2.4 config/output_config.env
+- 出力設定を管理する環境変数ファイル
+- アプリケーション情報などの出力制御
+- 各設定項目にコメントで説明を付与
 
 ### 2.2 api/api_manager.py
 - API Manager APIとの通信処理

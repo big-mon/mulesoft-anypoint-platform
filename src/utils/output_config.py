@@ -1,23 +1,26 @@
 """出力設定を制御するモジュール"""
 
-import json
 import os
 from typing import Dict
+from dotenv import dotenv_values
 
 
 class OutputConfig:
     """出力設定を制御するクラス"""
 
     def __init__(self):
-        self._config = {}
-        self._load_config()
+        self._config = self._load_config()
 
-    def _load_config(self):
-        """設定ファイルを読み込む"""
-        config_path = "config/output_config.json"
-        if os.path.exists(config_path):
-            with open(config_path, "r", encoding="utf-8") as f:
-                self._config = json.load(f)
+    def _load_config(self) -> Dict:
+        """設定ファイルを読み込む
+
+        Returns:
+            Dict: 設定内容
+        """
+        config_path = "config/output_config.env"
+        if not os.path.exists(config_path):
+            return {}
+        return dotenv_values(config_path)
 
     @property
     def is_output_required(self) -> bool:
@@ -37,7 +40,8 @@ class OutputConfig:
         Returns:
             bool: 出力が必要な場合はTrue
         """
-        return self._config.get(key, {}).get("enabled", True)
+        env_key = f"{key.upper()}_ENABLED"
+        return self._config.get(env_key, "true").lower() == "true"
 
     def get_output_filename(self, key: str) -> str:
         """指定された情報の出力ファイル名を取得する
@@ -48,7 +52,5 @@ class OutputConfig:
         Returns:
             str: 出力ファイル名
         """
-        output_filenames = {
-            "applications": "applications-full.json"
-        }
-        return output_filenames.get(key, "")
+        env_key = f"{key.upper()}_FILENAME"
+        return self._config.get(env_key, "")
