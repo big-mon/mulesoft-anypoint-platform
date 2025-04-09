@@ -19,14 +19,14 @@ class CloudHubService:
         try:
             # アプリケーションの取得
             applications = await self._cloudhub_client.get_applications()
-            print("アプリケーションの取得に成功しました：")
+            print("get_cloudhub_infoに成功しました：")
 
         except Exception as e:
-            print(f"アプリケーションの取得時にエラーが発生しました: {e}")
+            print(f"get_cloudhub_info時にエラーが発生しました: {e}")
             raise
 
         # CloudHub情報の出力
         if self._file_output and self._output_config.get_output_setting("cloudhub"):
             filename = self._output_config.get_output_filename("cloudhub")
             file_path = self._file_output.output_json(applications, filename)
-            print(f"CloudHub情報の出力に成功しました：{file_path}")
+            print(f"get_cloudhub_info:CloudHub情報の出力に成功しました：{file_path}")

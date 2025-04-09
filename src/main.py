@@ -59,10 +59,10 @@ async def main():
         # API ManagerとCloudHubのクライアントを初期化
         api_manager_client = APIManagerClient(access_token, formatted_environments)
         api_manager_service = APIManagerService(api_manager_client, file_output, output_config)
-        
+
         cloudhub_client = CloudHubClient(access_token, formatted_environments)
         cloudhub_service = CloudHubService(cloudhub_client, file_output, output_config)
-        
+
         # 両方の情報を非同期で取得
         await asyncio.gather(
             api_manager_service.get_api_manager_info(),
@@ -72,7 +72,7 @@ async def main():
         print(f"情報取得時にエラーが発生しました: {e}")
         return
 
-    print("処理を完了しました。")
+    print("処理を完了しました：")
 
 if __name__ == "__main__":
     asyncio.run(main())
