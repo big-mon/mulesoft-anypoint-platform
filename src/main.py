@@ -15,6 +15,13 @@ def main():
     config = Config()
     if not config.is_valid:
         raise ConfigurationError("必要な環境変数が設定されていません。")
+        
+    # 出力設定の読み込みとフォルダの準備
+    output_config = OutputConfig()
+    file_output = None
+    if output_config.is_output_required:
+        file_output = FileOutput()
+        file_output.prepare_output_folder()
 
     try:
         # 認証クライアントの初期化
@@ -48,14 +55,11 @@ def main():
         applications = api_manager_client.get_applications()
         print("アプリケーションの取得に成功しました：")
 
-        # 出力設定の読み込み
-        output_config = OutputConfig()
-        if output_config.is_output_required:
-            file_output = FileOutput()
-            if output_config.get_output_setting("applications"):
-                filename = output_config.get_output_filename("applications")
-                file_path = file_output.output_json(applications, filename)
-                print(f"アプリケーションの出力に成功しました：{file_path}")
+        # アプリケーション情報の出力
+        if file_output and output_config.get_output_setting("applications"):
+            filename = output_config.get_output_filename("applications")
+            file_path = file_output.output_json(applications, filename)
+            print(f"アプリケーションの出力に成功しました：{file_path}")
 
     except Exception as e:
         print(f"アプリケーションの取得時にエラーが発生しました: {e}")

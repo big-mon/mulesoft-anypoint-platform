@@ -28,9 +28,12 @@ class FileOutput:
 
         Returns:
             str: 出力したファイルのパス
+
+        Raises:
+            RuntimeError: 出力フォルダが準備されていない場合
         """
         if not self._output_folder:
-            self.prepare_output_folder()
+            raise RuntimeError("出力フォルダが準備されていません。prepare_output_folderを先に呼び出してください。")
 
         # 出力先へ出力
         file_path = os.path.join(self._output_folder, filename)
