@@ -6,7 +6,7 @@ import requests
 from dotenv import load_dotenv
 
 class AuthClient:
-    """認証クライアント"""
+    """認証クライアント(Access Management API)"""
 
     def __init__(self):
         load_dotenv()
