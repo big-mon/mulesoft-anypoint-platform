@@ -5,10 +5,12 @@ import asyncio
 from auth.client import AuthClient
 from api.accounts import AccountsAPI
 from api.api_manager import APIManagerClient
+from api.runtime_manager import RuntimeManagerClient
 from utils.config import Config
 from utils.file_output import FileOutput
 from utils.output_config import OutputConfig
 from services.api_manager_service import APIManagerService
+from services.runtime_manager_service import RuntimeManagerService
 
 async def main():
     """メイン処理"""
@@ -60,6 +62,15 @@ async def main():
         await api_manager_service.get_api_manager_info()
     except Exception as e:
         print(f"API Manager情報の取得時にエラーが発生しました: {e}")
+        return
+
+    try:
+        # Runtime Manager情報の取得
+        runtime_manager_client = RuntimeManagerClient(access_token, formatted_environments)
+        runtime_manager_service = RuntimeManagerService(runtime_manager_client, file_output, output_config)
+        await runtime_manager_service.get_runtime_manager_info()
+    except Exception as e:
+        print(f"Runtime Manager情報の取得時にエラーが発生しました: {e}")
         return
 
     print("処理を完了しました。")
