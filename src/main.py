@@ -104,13 +104,19 @@ async def main():
             results = await asyncio.gather(*tasks)
 
             # 結果を整理
-            if not compact_applications or not compact_applications[0].get("apis"):
+            if not compact_applications:
                 print("アプリケーション情報が見つかりません")
                 return
 
+            # API情報を含む環境をカウント
             api_count = 0
             for env in compact_applications:
-                api_count += len(env["apis"])
+                if env.get("apis") and len(env["apis"]) > 0:
+                    api_count += len(env["apis"])
+
+            if api_count == 0:
+                print("処理対象のAPIが見つかりません")
+                return
 
             if len(results) != 2 * api_count:
                 print(f"予期しない結果数です: {len(results)} (expected: {2 * api_count})")
