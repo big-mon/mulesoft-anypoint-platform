@@ -68,16 +68,10 @@ async def main():
         print(f"アプリケーションの取得時にエラーが発生しました: {e}")
 
     try:
-        # 環境別アプリケーション情報を解析用にコンパクト化
+        # アプリケーション情報のコンパクト化
         compact_applications = api_manager_client.compact_applications(applications)
-
-        # コンパクト化されたアプリケーション情報の出力
-        if file_output and output_config.get_output_setting("applications_compact"):
-            filename = output_config.get_output_filename("applications_compact")
-            file_path = file_output.output_json(compact_applications, filename)
-            print(f"コンパクト化されたアプリケーション情報の出力に成功しました：{file_path}")
-
         print("アプリケーションのコンパクト化に成功しました：")
+
     except Exception as e:
         print(f"アプリケーションのコンパクト化時にエラーが発生しました: {e}")
 
@@ -155,6 +149,36 @@ async def main():
             filename = output_config.get_output_filename("contracts")
             file_path = file_output.output_json(contracts, filename)
             print(f"Contracts情報の出力に成功しました：{file_path}")
+
+        # API Manager情報を統合
+        for env in compact_applications:
+            for api in env["apis"]:
+                api_id = str(api["id"])
+                # ポリシー情報の結合
+                policy = next((p for p in policies if p["api_id"] == api_id), None)
+                if policy:
+                    api["policies"] = policy["policies"]
+                else:
+                    api["policies"] = []
+
+                # コントラクト情報の結合
+                contract = next((c for c in contracts if c["api_id"] == api_id), None)
+                if contract:
+                    api["contracts"] = contract["contracts"]["contracts"]
+                else:
+                    api["contracts"] = []
+
+        # 統合したAPI Manager情報の出力
+        if file_output and output_config.get_output_setting("api_manager"):
+            filename = output_config.get_output_filename("api_manager")
+            file_path = file_output.output_json(compact_applications, filename)
+            print(f"API Manager情報の出力に成功しました：{file_path}")
+
+        # アプリケーション情報のコンパクト化の出力
+        if file_output and output_config.get_output_setting("applications_compact"):
+            filename = output_config.get_output_filename("applications_compact")
+            file_path = file_output.output_json(compact_applications, filename)
+            print(f"コンパクト化されたアプリケーション情報の出力に成功しました：{file_path}")
 
         print("ポリシー情報とContracts情報の取得に成功しました：")
     except Exception as e:
