@@ -67,30 +67,7 @@ def main():
 
     try:
         # 環境別アプリケーション情報を解析用にコンパクト化
-        compact_applications = []
-
-        # applications配列をループ
-        for app in applications:
-            compact_app = {
-                "env_name": app["env_name"],
-                "org_id": app["org_id"],
-                "env_id": app["env_id"],
-                "apis": []
-            }
-
-            # apis.assets内のapisを格納
-            if app["apis"]["assets"]:
-                compact_app["apis"] = []
-                for asset in app["apis"]["assets"]:
-                    for api in asset["apis"]:
-                        compact_app["apis"].append({
-                            "id": api["id"],
-                            "exchangeAssetName": asset["exchangeAssetName"],
-                            "instanceLabel": api["instanceLabel"],
-                            "status": api["status"]
-                        })
-
-            compact_applications.append(compact_app)
+        compact_applications = api_manager_client.compact_applications(applications)
 
         # コンパクト化されたアプリケーション情報の出力
         if file_output and output_config.get_output_setting("applications_compact"):
