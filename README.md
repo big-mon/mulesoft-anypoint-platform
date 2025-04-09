@@ -5,14 +5,19 @@ MuleSoft の Anypoint Platform API を使用してアプリケーション情報
 ## 機能
 
 - API Manager からアプリケーション情報取得
+  - アプリケーション一覧
+  - ポリシー設定
+  - Contracts情報
+  - アラート情報
+  - ティア情報
 - Runtime Manager からアプリケーション情報取得
-- PyPy 互換の実装
+- 非同期処理による高速な情報取得
+- 柔軟な出力設定
 
 ## 必要な環境
 
 - Python 3.x
-- PyPy
-- requests ライブラリ
+- requests, aiohttp ライブラリ
 
 ## インストール方法
 
@@ -35,8 +40,13 @@ cp .env.example .env
 `.env`ファイルを編集し、以下の情報を設定してください：
 - `ANYPOINT_CLIENT_ID`: Anypoint Platform の Client ID
 - `ANYPOINT_CLIENT_SECRET`: Anypoint Platform の Client Secret
-- `ANYPOINT_ORGANIZATION_ID`: 組織ID
-- `ANYPOINT_ENVIRONMENT_ID`: 環境ID
+
+4. 出力設定の設定
+```bash
+cp config/output_config.env.example config/output_config.env
+```
+
+`output_config.env`ファイルで、各種情報の出力要否や出力ファイル名を設定できます。
 
 ## 使用方法
 
