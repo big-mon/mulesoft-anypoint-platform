@@ -36,19 +36,23 @@ async def test_get_applications(cloudhub_client):
     ]
 
     class MockResponse:
+        def __init__(self):
+            self.status = 200
+
         async def __aenter__(self):
             return self
 
         async def __aexit__(self, exc_type, exc_val, exc_tb):
-            return None
+            pass
 
         async def json(self):
             return mock_response
 
         def raise_for_status(self):
-            pass
+            if self.status >= 400:
+                raise aiohttp.ClientResponseError(None, None, status=self.status)
 
-    async def mock_get(*args, **kwargs):
+    def mock_get(*args, **kwargs):
         return MockResponse()
 
     with patch("aiohttp.ClientSession.get", side_effect=mock_get):
