@@ -81,3 +81,17 @@ class APIManagerClient:
         response = self.__session.get(url)
         response.raise_for_status()
         return response.json()
+
+    async def get_policies_async(self, session, org_id, env_id, api_id):
+        """ポリシーの非同期取得"""
+        url = f"{self._base_url}/apimanager/api/v1/organizations/{org_id}/environments/{env_id}/apis/{api_id}/policies"
+        async with session.get(url, headers=self.__session.headers) as response:
+            response.raise_for_status()
+            return await response.json()
+
+    async def get_contracts_async(self, session, org_id, env_id, api_id):
+        """コントラクトの非同期取得"""
+        url = f"{self._base_url}/apimanager/api/v1/organizations/{org_id}/environments/{env_id}/apis/{api_id}/contracts"
+        async with session.get(url, headers=self.__session.headers) as response:
+            response.raise_for_status()
+            return await response.json()
