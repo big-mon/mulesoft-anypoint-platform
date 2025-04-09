@@ -4,8 +4,8 @@ import requests
 import aiohttp
 
 
-class RuntimeManagerClient:
-    """Runtime Manager APIクライアント"""
+class CloudHubClient:
+    """CloudHub APIクライアント"""
     def __init__(self, token, environments):
         load_dotenv()
         self._base_url = os.getenv('ANYPOINT_BASE_URL')

@@ -10,7 +10,7 @@ MuleSoft の Anypoint Platform API を使用してアプリケーション情報
   - Contracts 情報
   - アラート情報
   - ティア情報
-- Runtime Manager からアプリケーション情報取得
+- CloudHub からアプリケーション情報取得
 - 非同期処理による高速な情報取得
 - 柔軟な出力設定
 

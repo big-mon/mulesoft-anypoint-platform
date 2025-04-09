@@ -5,8 +5,8 @@ from utils.file_output import FileOutput
 from config.output_config import OutputConfig
 
 
-class RuntimeManagerService:
-    """Runtime Manager Service"""
+class CloudHubService:
+    """CloudHub Service"""
 
     def __init__(self, runtime_manager_client: RuntimeManagerClient, file_output: FileOutput, output_config: OutputConfig):
         """初期化"""
@@ -14,8 +14,8 @@ class RuntimeManagerService:
         self._file_output = file_output
         self._output_config = output_config
 
-    async def get_runtime_manager_info(self):
-        """Runtime Manager情報の取得"""
+    async def get_cloudhub_info(self):
+        """CloudHub情報の取得"""
         try:
             # アプリケーションの取得
             applications = self._runtime_manager_client.get_applications()
