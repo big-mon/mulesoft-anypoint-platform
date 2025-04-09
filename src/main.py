@@ -85,9 +85,9 @@ def main():
                     for api in asset["apis"]:
                         compact_app["apis"].append({
                             "id": api["id"],
-                            "assetId": api["assetId"],
+                            "exchangeAssetName": asset["exchangeAssetName"],
                             "instanceLabel": api["instanceLabel"],
-                            "exchangeAssetName": asset["exchangeAssetName"]
+                            "status": api["status"]
                         })
 
             compact_applications.append(compact_app)
