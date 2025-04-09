@@ -29,26 +29,8 @@ class OutputConfig:
         Returns:
             bool: いずれかの出力が必要な場合はTrue
         """
-        output_keys = ["applications", "applications_compact", "application_status"]
+        output_keys = ["api_manager", "cloudhub"]
         return any(self.get_output_setting(key) for key in output_keys)
-
-    @property
-    def output_applications(self) -> bool:
-        """アプリケーション情報の出力要否
-
-        Returns:
-            bool: 出力が必要な場合はTrue
-        """
-        return self.get_output_setting("applications")
-
-    @property
-    def output_status(self) -> bool:
-        """アプリケーションステータスの出力要否
-
-        Returns:
-            bool: 出力が必要な場合はTrue
-        """
-        return self.get_output_setting("application_status")
 
     def get_output_setting(self, key: str) -> bool:
         """指定された情報の出力設定を取得する
@@ -74,12 +56,7 @@ class OutputConfig:
         env_key = f"{key.upper()}_FILENAME"
         # デフォルトのファイル名を設定
         default_filenames = {
-            "policies": "policies.json",
-            "contracts": "contracts.json",
-            "alerts": "alerts.json",
-            "tiers": "tiers.json",
             "api_manager": "api_manager.json",
-            "applications": "runtime_applications.json",
-            "application_status": "runtime_application_status.json"
+            "cloudhub": "cloudhub.json"
         }
         return self._config.get(env_key, default_filenames.get(key, f"{key}.json"))
