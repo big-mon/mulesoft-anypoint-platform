@@ -2,6 +2,8 @@
 """API MAnager API"""
 
 import os
+import asyncio
+import aiohttp
 import requests
 from dotenv import load_dotenv
 
@@ -16,26 +18,32 @@ class APIManagerClient:
         })
         self._environments = environments
 
-    def get_applications(self):
+    async def get_applications(self):
         """アプリケーションの取得"""
-        # environmentsを全件ループしてアプリケーションを取得
-        applications = []
-        for env in self._environments:
-            url = f"{self._base_url}/apimanager/api/v1/organizations/{env['org_id']}/environments/{env['env_id']}/apis"
-            params = {
-                'sort': 'name'
-            }
-            response = self.__session.get(url, params=params)
-            response.raise_for_status()
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            for env in self._environments:
+                tasks.append(asyncio.create_task(
+                    self.get_applications_async(session, env)
+                ))
+            applications = await asyncio.gather(*tasks)
+            return applications
 
+    async def get_applications_async(self, session, env):
+        """アプリケーションの非同期取得"""
+        url = f"{self._base_url}/apimanager/api/v1/organizations/{env['org_id']}/environments/{env['env_id']}/apis"
+        params = {
+            'sort': 'name'
+        }
+        async with session.get(url, headers=self.__session.headers, params=params) as response:
+            response.raise_for_status()
             data = {
                 'env_name': env['name'],
                 'org_id': env['org_id'],
                 'env_id': env['env_id'],
-                'apis': response.json()
+                'apis': await response.json()
             }
-            applications.append(data)
-        return applications
+            return data
 
     def compact_applications(self, applications):
         """アプリケーション情報を解析用にコンパクト化"""

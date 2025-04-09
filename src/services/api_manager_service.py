@@ -20,7 +20,7 @@ class APIManagerService:
         """API Manager情報の取得"""
         try:
             # アプリケーションの取得
-            applications = self._api_manager_client.get_applications()
+            applications = await self._api_manager_client.get_applications()
             compact_applications = self._api_manager_client.compact_applications(applications)
             print("アプリケーションの取得に成功しました：")
         except Exception as e:
