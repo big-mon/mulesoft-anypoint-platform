@@ -2,6 +2,7 @@
 """Anypoint Platform API Client"""
 
 from auth.client import AuthClient
+from api.accounts import AccountsAPI
 from utils.config import Config
 from utils.exceptions import ConfigurationError
 
@@ -12,13 +13,27 @@ def main():
     if not config.is_valid:
         raise ConfigurationError("必要な環境変数が設定されていません。")
 
-    # 認証クライアントの初期化
-    auth_client = AuthClient()
-
     try:
+        # 認証クライアントの初期化
+        auth_client = AuthClient()
+
         # アクセストークンの取得
         token = auth_client.get_access_token()
         print("アクセストークンの取得に成功しました：")
+    except Exception as e:
+        print(f"エラーが発生しました: {e}")
+
+    try:
+        # API Platformクライアントの初期化
+        api_platform_client = AccountsAPI(token)
+
+        # 組織情報を取得
+        organization = api_platform_client.get_organization()
+        environments = []
+        print("組織情報の取得に成功しました：")
+        for env in organization['data']:
+            environments.append({"name": env['name'], "id": env['id']})
+
     except Exception as e:
         print(f"エラーが発生しました: {e}")
 
