@@ -67,3 +67,10 @@ class APIManagerClient:
             compact_applications.append(compact_app)
 
         return compact_applications
+
+    def get_policies(self, org_id, env_id, api_id):
+        """ポリシーの取得"""
+        url = f"{self._base_url}/apimanager/api/v1/organizations/{org_id}/environments/{env_id}/apis/{api_id}/policies"
+        response = self.__session.get(url)
+        response.raise_for_status()
+        return response.json()

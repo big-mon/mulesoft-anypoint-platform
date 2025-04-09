@@ -79,5 +79,33 @@ def main():
     except Exception as e:
         print(f"アプリケーションのコンパクト化時にエラーが発生しました: {e}")
 
+    try:
+        # アプリケーション別にポリシー情報を取得
+        policies = []
+        for env in compact_applications:
+            org_id = env["org_id"]
+            env_id = env["env_id"]
+
+            for api in env["apis"]:
+                api_id = api["id"]
+                policy = api_manager_client.get_policies(org_id, env_id, api_id)
+                policies.append({
+                    "env_name": env["env_name"],
+                    "org_id": org_id,
+                    "env_id": env_id,
+                    "api_id": str(api_id),
+                    "policies": policy["policies"]
+                })
+
+        # ポリシー情報の出力
+        if file_output and output_config.get_output_setting("policies"):
+            filename = output_config.get_output_filename("policies")
+            file_path = file_output.output_json(policies, filename)
+            print(f"ポリシー情報の出力に成功しました：{file_path}")
+
+        print("ポリシー情報の取得に成功しました：")
+    except Exception as e:
+        print(f"ポリシー情報の取得時にエラーが発生しました: {e}")
+
 if __name__ == "__main__":
     main()
