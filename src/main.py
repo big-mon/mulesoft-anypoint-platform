@@ -53,17 +53,14 @@ async def main():
             'env_id': env['id']
         })
 
-    # API Managerクライアントの初期化
-    api_manager_client = APIManagerClient(
-        access_token,
-        formatted_environments
-    )
-
-    # API Manager Serviceの初期化
-    api_manager_service = APIManagerService(api_manager_client, file_output, output_config)
-
-    # API Manager情報の取得
-    await api_manager_service.get_api_manager_info()
+    try:
+        # API Manager情報の取得
+        api_manager_client = APIManagerClient(access_token, formatted_environments)
+        api_manager_service = APIManagerService(api_manager_client, file_output, output_config)
+        await api_manager_service.get_api_manager_info()
+    except Exception as e:
+        print(f"API Manager情報の取得時にエラーが発生しました: {e}")
+        return
 
     print("処理を完了しました。")
 
