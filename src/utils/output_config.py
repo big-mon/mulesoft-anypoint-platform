@@ -29,7 +29,8 @@ class OutputConfig:
         Returns:
             bool: いずれかの出力が必要な場合はTrue
         """
-        return any(self.get_output_setting(key) for key in ["applications"])
+        output_keys = ["applications", "applications_compact"]
+        return any(self.get_output_setting(key) for key in output_keys)
 
     def get_output_setting(self, key: str) -> bool:
         """指定された情報の出力設定を取得する

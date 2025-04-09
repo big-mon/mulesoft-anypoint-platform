@@ -29,7 +29,7 @@ class APIManagerClient:
           response.raise_for_status()
 
           data = {
-            'name': env['name'],
+            'env_name': env['name'],
             'org_id': env['org_id'],
             'env_id': env['env_id'],
             'apis': response.json()
