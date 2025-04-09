@@ -3,7 +3,7 @@
 import pytest
 import aiohttp
 import asyncio
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, patch, AsyncMock
 from src.api.api_manager import APIManagerClient
 
 
@@ -35,13 +35,21 @@ async def test_get_applications(api_manager_client):
         ]
     }
 
+    class MockResponse:
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
+            return None
+
+        async def json(self):
+            return mock_response
+
+        def raise_for_status(self):
+            pass
+
     async def mock_get(*args, **kwargs):
-        mock = Mock()
-        mock.raise_for_status = Mock()
-        mock.json = Mock(return_value=mock_response)
-        mock.__aenter__ = Mock(return_value=mock)
-        mock.__aexit__ = Mock(return_value=None)
-        return mock
+        return MockResponse()
 
     with patch("aiohttp.ClientSession.get", side_effect=mock_get):
         applications = await api_manager_client.get_applications()
