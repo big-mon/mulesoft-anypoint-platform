@@ -80,8 +80,9 @@ def main():
         print(f"アプリケーションのコンパクト化時にエラーが発生しました: {e}")
 
     try:
-        # アプリケーション別にポリシー情報を取得
+        # アプリケーション別にポリシー情報とContracts情報を取得
         policies = []
+        contracts = []
         for env in compact_applications:
             org_id = env["org_id"]
             env_id = env["env_id"]
@@ -89,12 +90,20 @@ def main():
             for api in env["apis"]:
                 api_id = api["id"]
                 policy = api_manager_client.get_policies(org_id, env_id, api_id)
+                contract = api_manager_client.get_contracts(org_id, env_id, api_id)
                 policies.append({
                     "env_name": env["env_name"],
                     "org_id": org_id,
                     "env_id": env_id,
                     "api_id": str(api_id),
                     "policies": policy["policies"]
+                })
+                contracts.append({
+                    "env_name": env["env_name"],
+                    "org_id": org_id,
+                    "env_id": env_id,
+                    "api_id": str(api_id),
+                    "contracts": contract
                 })
 
         # ポリシー情報の出力
@@ -103,9 +112,15 @@ def main():
             file_path = file_output.output_json(policies, filename)
             print(f"ポリシー情報の出力に成功しました：{file_path}")
 
-        print("ポリシー情報の取得に成功しました：")
+        # Contracts情報の出力
+        if file_output and output_config.get_output_setting("contracts"):
+            filename = output_config.get_output_filename("contracts")
+            file_path = file_output.output_json(contracts, filename)
+            print(f"Contracts情報の出力に成功しました：{file_path}")
+
+        print("ポリシー情報とContracts情報の取得に成功しました：")
     except Exception as e:
-        print(f"ポリシー情報の取得時にエラーが発生しました: {e}")
+        print(f"ポリシー情報とContracts情報の取得時にエラーが発生しました: {e}")
 
 if __name__ == "__main__":
     main()
