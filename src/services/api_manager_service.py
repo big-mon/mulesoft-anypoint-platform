@@ -99,6 +99,13 @@ class APIManagerService:
                             "api_id": str(api["id"]),
                             "policies": policy_result["policies"]
                         })
+                        contracts.append({
+                            "env_name": env["env_name"],
+                            "org_id": env["org_id"],
+                            "env_id": env["env_id"],
+                            "api_id": str(api["id"]),
+                            "contracts": contract_result
+                        })
                         alerts.append({
                             "env_name": env["env_name"],
                             "org_id": env["org_id"],
@@ -106,12 +113,12 @@ class APIManagerService:
                             "api_id": str(api["id"]),
                             "alerts": alert_result
                         })
-                        contracts.append({
+                        tiers.append({
                             "env_name": env["env_name"],
                             "org_id": env["org_id"],
                             "env_id": env["env_id"],
                             "api_id": str(api["id"]),
-                            "contracts": contract_result
+                            "tiers": tier_result
                         })
 
             # ポリシー情報の出力
@@ -169,7 +176,7 @@ class APIManagerService:
                         # ティア情報の結合
                         tier = next((t for t in tiers if t["api_id"] == api_id), None)
                         if tier:
-                            api["tiers"] = tier["tiers"]
+                            api["tiers"] = tier["tiers"]["tiers"]
                         else:
                             api["tiers"] = []
 
