@@ -76,34 +76,6 @@ class APIManagerClient:
 
         return compact_applications
 
-    def get_policies(self, org_id, env_id, api_id):
-        """ポリシーの取得"""
-        url = f"{self._base_url}/apimanager/api/v1/organizations/{org_id}/environments/{env_id}/apis/{api_id}/policies"
-        response = self.__session.get(url)
-        response.raise_for_status()
-        return response.json()
-
-    def get_contracts(self, org_id, env_id, api_id):
-        """コントラクトの取得"""
-        url = f"{self._base_url}/apimanager/api/v1/organizations/{org_id}/environments/{env_id}/apis/{api_id}/contracts"
-        response = self.__session.get(url)
-        response.raise_for_status()
-        return response.json()
-
-    def get_alerts(self, org_id, env_id, api_id):
-        """アラートの取得"""
-        url = f"{self._base_url}/apimanager/api/v1/organizations/{org_id}/environments/{env_id}/apis/{api_id}/alerts"
-        response = self.__session.get(url)
-        response.raise_for_status()
-        return response.json()
-
-    def get_tiers(self, org_id, env_id, api_id):
-        """ティアの取得"""
-        url = f"{self._base_url}/apimanager/api/v1/organizations/{org_id}/environments/{env_id}/apis/{api_id}/tiers"
-        response = self.__session.get(url)
-        response.raise_for_status()
-        return response.json()
-
     async def get_policies_async(self, session, org_id, env_id, api_id):
         """ポリシーの非同期取得"""
         url = f"{self._base_url}/apimanager/api/v1/organizations/{org_id}/environments/{env_id}/apis/{api_id}/policies"
