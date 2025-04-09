@@ -18,7 +18,7 @@ class CloudHubService:
         """CloudHub情報の取得"""
         try:
             # アプリケーションの取得
-            applications = self._cloudhub_client.get_applications()
+            applications = await self._cloudhub_client.get_applications()
             print("アプリケーションの取得に成功しました：")
 
         except Exception as e:
