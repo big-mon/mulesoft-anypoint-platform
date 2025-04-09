@@ -40,6 +40,7 @@ cp .env.example .env
 `.env`ファイルを編集し、以下の情報を設定してください：
 - `ANYPOINT_CLIENT_ID`: Anypoint Platform の Client ID
 - `ANYPOINT_CLIENT_SECRET`: Anypoint Platform の Client Secret
+- `ANYPOINT_ORGANIZATION_ID`: 組織ID
 
 4. 出力設定の設定
 ```bash
