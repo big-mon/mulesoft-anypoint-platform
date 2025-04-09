@@ -59,6 +59,7 @@ class APIManagerClient:
                             "id": api["id"],
                             "exchangeAssetName": asset["exchangeAssetName"],
                             "instanceLabel": api["instanceLabel"],
+                            "activeContractsCount": api["activeContractsCount"],
                             "status": api["status"]
                         })
 
