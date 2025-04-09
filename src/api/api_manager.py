@@ -1,11 +1,12 @@
 #!/usr/bin/env python3
-"""API MAnager API"""
+"""API Manager API"""
 
 import os
 import asyncio
 import aiohttp
 import requests
 from dotenv import load_dotenv
+
 
 class APIManagerClient:
     """API Manager APIクライアント"""
