@@ -17,26 +17,23 @@ class CloudHubClient:
 
     def get_applications(self):
         """アプリケーションの取得"""
-        results = []
+        # environmentsを全件ループしてアプリケーションを取得
+        applications = []
         for env in self._environments:
-            url = f"{self._base_url}/hybrid/api/v2/organizations/{env['org_id']}/environments/{env['env_id']}/applications"
-            response = self.__session.get(url)
+            url = f"{self._base_url}/cloudhub/api/v2/applications"
+            unique_headers = {
+                'X-ANYPNT-ENV-ID': env['env_id']
+            }
+            headers = self.__session.headers.copy()
+            headers.update(unique_headers)
+            response = self.__session.get(url, headers=headers)
             response.raise_for_status()
-            data = response.json()
-            
-            for app in data:
-                results.append({
-                    "env_name": env["env_name"],
-                    "org_id": env["org_id"],
-                    "env_id": env["env_id"],
-                    **app
-                })
-        
-        return results
 
-    async def get_status_async(self, session, org_id, env_id, app_id):
-        """アプリケーションステータスの非同期取得"""
-        url = f"{self._base_url}/hybrid/api/v2/organizations/{org_id}/environments/{env_id}/applications/{app_id}/status"
-        async with session.get(url, headers=self.__session.headers) as response:
-            response.raise_for_status()
-            return await response.json()
+            data = {
+                'env_name': env['name'],
+                'org_id': env['org_id'],
+                'env_id': env['env_id'],
+                'apis': response.json()
+            }
+            applications.append(data)
+        return applications
