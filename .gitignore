@@ -49,3 +49,7 @@ venv.bak/
 .idea/
 *.swp
 *.swo
+
+# Output
+output/*
+!output/.gitkeep

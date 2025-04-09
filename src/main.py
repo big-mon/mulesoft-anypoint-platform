@@ -3,8 +3,10 @@
 
 from auth.client import AuthClient
 from api.accounts import AccountsAPI
+from api.api_manager import APIManagerClient
 from utils.config import Config
 from utils.exceptions import ConfigurationError
+from utils.file_output import FileOutput
 
 def main():
     """メイン処理"""
@@ -32,10 +34,25 @@ def main():
         environments = []
         print("組織情報の取得に成功しました：")
         for env in organization['data']:
-            environments.append({"name": env['name'], "id": env['id']})
+            environments.append({"name": env['name'], "env_id": env['id'], "org_id": env['organizationId']})
 
     except Exception as e:
         print(f"組織情報の取得時にエラーが発生しました: {e}")
+
+    try:
+        # API Managerクライアントの初期化
+        api_manager_client = APIManagerClient(token, environments)
+
+        # アプリケーションの取得
+        applications = api_manager_client.get_applications()
+        print("アプリケーションの取得に成功しました：")
+
+        # アプリケーション情報をファイルに出力
+        file_path = FileOutput.output_json(applications, 'applications.json')
+        print(f"アプリケーションの出力に成功しました：{file_path}")
+
+    except Exception as e:
+        print(f"アプリケーションの取得時にエラーが発生しました: {e}")
 
 if __name__ == "__main__":
     main()
