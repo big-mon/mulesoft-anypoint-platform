@@ -1,6 +1,8 @@
 # Anypoint Platform Client
 
-MuleSoft の Anypoint Platform API を使用してアプリケーション情報を取得する Python プログラムです。API Manager や CloudHub の情報を非同期で効率的に取得し、JSON形式で出力します。
+![](./mulesoft.jpg)
+
+MuleSoft の Anypoint Platform API を使用してアプリケーション情報を取得する Python プログラムです。API Manager や CloudHub の情報を非同期で効率的に取得し、JSON 形式で出力します。
 
 ## 概要
 
@@ -8,11 +10,12 @@ MuleSoft の Anypoint Platform API を使用してアプリケーション情報
 
 - Anypoint Platform の API 情報を一括で取得したい場合
 - CloudHub のアプリケーション情報を環境横断で取得したい場合
-- 取得した情報を構造化されたJSONとして保存したい場合
+- 取得した情報を構造化された JSON として保存したい場合
 
 ## 機能
 
 ### API Manager 情報取得
+
 - アプリケーション一覧
 - ポリシー設定
 - Contracts 情報
@@ -20,18 +23,20 @@ MuleSoft の Anypoint Platform API を使用してアプリケーション情報
 - ティア情報
 
 ### CloudHub 情報取得
+
 - アプリケーション一覧
 - デプロイメント情報
 - ステータス情報
 
 ### その他の特徴
+
 - 非同期処理による高速な情報取得
 - 柔軟な出力設定
 - エラーハンドリング
 
 ## 必要な環境
 
-- Python 3.8以上
+- Python 3.8 以上
 - 必要なライブラリ
   - requests
   - aiohttp
@@ -39,22 +44,15 @@ MuleSoft の Anypoint Platform API を使用してアプリケーション情報
 
 ## インストール方法
 
-1. リポジトリのクローン
-
 ```bash
+# 1. リポジトリのクローン
 git clone https://github.com/big-mon/mulesoft-anypoint-platform.git
 cd mulesoft-anypoint-platform
-```
 
-2. 依存パッケージのインストール
-
-```bash
+# 2. 依存パッケージのインストール
 pip install -r requirements.txt
-```
 
-3. 環境変数の設定
-
-```bash
+# 3. 環境変数の設定
 cp .env.example .env
 ```
 
@@ -89,6 +87,7 @@ python src/main.py
 ### よくあるエラー
 
 1. 認証エラー
+
    - Client ID、Client Secret、Organization ID が正しく設定されているか確認してください
 
 2. ネットワークエラー
@@ -119,7 +118,7 @@ python -m pytest tests/
 
 ## バグ報告・機能要望
 
-バグを発見した場合や新機能の要望がある場合は、GitHubのIssueに登録してください。
+バグを発見した場合や新機能の要望がある場合は、GitHub の Issue に登録してください。
 
 ## 更新履歴
 
