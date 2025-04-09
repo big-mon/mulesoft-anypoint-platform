@@ -22,9 +22,9 @@ class APIManagerService:
             # アプリケーションの取得
             applications = await self._api_manager_client.get_applications()
             compact_applications = self._api_manager_client.compact_applications(applications)
-            print("アプリケーションの取得に成功しました：")
+            print("get_api_manager_infoに成功しました：")
         except Exception as e:
-            print(f"アプリケーションの取得時にエラーが発生しました: {e}")
+            print(f"get_api_manager_info時にエラーが発生しました: {e}")
             return None
 
         try:
@@ -59,7 +59,7 @@ class APIManagerService:
 
                 # 結果を整理
                 if not compact_applications:
-                    print("アプリケーション情報が見つかりません")
+                    print("get_api_manager_info:アプリケーション情報が見つかりません")
                     return None
 
                 # API情報を含む環境をカウント
@@ -69,11 +69,11 @@ class APIManagerService:
                         api_count += len(env["apis"])
 
                 if api_count == 0:
-                    print("処理対象のAPIが見つかりません")
+                    print("get_api_manager_info:処理対象のAPIが見つかりません")
                     return None
 
                 if len(results) != 4 * api_count:
-                    print(f"予期しない結果数です: {len(results)} (expected: {4 * api_count})")
+                    print(f"get_api_manager_info:予期しない結果数です: {len(results)} (expected: {4 * api_count})")
                     return None
 
                 result_index = 0
@@ -151,14 +151,14 @@ class APIManagerService:
                 if self._file_output and self._output_config.get_output_setting("api_manager"):
                     filename = self._output_config.get_output_filename("api_manager")
                     file_path = self._file_output.output_json(compact_applications, filename)
-                    print(f"API Manager情報の出力に成功しました：{file_path}")
+                    print(f"get_api_manager_info:API Manager情報の出力に成功しました：{file_path}")
 
                 return compact_applications
 
             except Exception as e:
-                print(f"API Manager情報の統合時にエラーが発生しました: {e}")
+                print(f"get_api_manager_info:API Manager情報の統合時にエラーが発生しました: {e}")
                 return None
 
         except Exception as e:
-            print(f"ポリシー情報、Contracts情報、アラート情報の取得時にエラーが発生しました: {e}")
+            print(f"get_api_manager_info:補足情報の取得時にエラーが発生しました: {e}")
             return None
