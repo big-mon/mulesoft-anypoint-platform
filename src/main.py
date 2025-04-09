@@ -78,9 +78,11 @@ def main():
                 "apis": []
             }
 
-            # apis.assetsの内容を格納
+            # apis.assets内のapisを格納
             if app["apis"]["assets"]:
-                compact_app["apis"] = app["apis"]["assets"]
+                compact_app["apis"] = []
+                for asset in app["apis"]["assets"]:
+                    compact_app["apis"].extend(asset["apis"])
 
             compact_applications.append(compact_app)
 
