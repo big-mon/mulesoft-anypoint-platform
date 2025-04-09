@@ -35,9 +35,10 @@ class APIManagerService:
             return None
 
         try:
-            # アプリケーション別にポリシー情報とContracts情報を非同期で取得
+            # アプリケーション別にポリシー情報、Contracts情報、アラート情報を非同期で取得
             policies = []
             contracts = []
+            alerts = []
             async with aiohttp.ClientSession() as session:
                 tasks = []
                 for env in compact_applications:
@@ -51,6 +52,9 @@ class APIManagerService:
                         ))
                         tasks.append(asyncio.create_task(
                             self._api_manager_client.get_contracts_async(session, org_id, env_id, api_id)
+                        ))
+                        tasks.append(asyncio.create_task(
+                            self._api_manager_client.get_alerts_async(session, org_id, env_id, api_id)
                         ))
 
                 # すべてのタスクを実行
@@ -71,8 +75,8 @@ class APIManagerService:
                     print("処理対象のAPIが見つかりません")
                     return None
 
-                if len(results) != 2 * api_count:
-                    print(f"予期しない結果数です: {len(results)} (expected: {2 * api_count})")
+                if len(results) != 3 * api_count:
+                    print(f"予期しない結果数です: {len(results)} (expected: {3 * api_count})")
                     return None
 
                 result_index = 0
@@ -80,7 +84,8 @@ class APIManagerService:
                     for api in env["apis"]:
                         policy_result = results[result_index]
                         contract_result = results[result_index + 1]
-                        result_index += 2
+                        alert_result = results[result_index + 2]
+                        result_index += 3
 
                         policies.append({
                             "env_name": env["env_name"],
@@ -88,6 +93,13 @@ class APIManagerService:
                             "env_id": env["env_id"],
                             "api_id": str(api["id"]),
                             "policies": policy_result["policies"]
+                        })
+                        alerts.append({
+                            "env_name": env["env_name"],
+                            "org_id": env["org_id"],
+                            "env_id": env["env_id"],
+                            "api_id": str(api["id"]),
+                            "alerts": alert_result
                         })
                         contracts.append({
                             "env_name": env["env_name"],
@@ -109,7 +121,13 @@ class APIManagerService:
                 file_path = self._file_output.output_json(contracts, filename)
                 print(f"Contracts情報の出力に成功しました：{file_path}")
 
-            print("ポリシー情報とContracts情報の取得に成功しました：")
+            # アラート情報の出力
+            if self._file_output and self._output_config.get_output_setting("alerts"):
+                filename = self._output_config.get_output_filename("alerts")
+                file_path = self._file_output.output_json(alerts, filename)
+                print(f"アラート情報の出力に成功しました：{file_path}")
+
+            print("ポリシー情報、Contracts情報、アラート情報の取得に成功しました：")
 
             try:
                 # API Manager情報を統合
@@ -130,6 +148,13 @@ class APIManagerService:
                         else:
                             api["contracts"] = []
 
+                        # アラート情報の結合
+                        alert = next((a for a in alerts if a["api_id"] == api_id), None)
+                        if alert:
+                            api["alerts"] = alert["alerts"]
+                        else:
+                            api["alerts"] = []
+
                 # 統合したAPI Manager情報の出力
                 if self._file_output and self._output_config.get_output_setting("api_manager"):
                     filename = self._output_config.get_output_filename("api_manager")
@@ -143,5 +168,5 @@ class APIManagerService:
                 return None
 
         except Exception as e:
-            print(f"ポリシー情報とContracts情報の取得時にエラーが発生しました: {e}")
+            print(f"ポリシー情報、Contracts情報、アラート情報の取得時にエラーが発生しました: {e}")
             return None
