@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """Anypoint Platform API Client"""
 
-import json
+import os
+import asyncio
+import aiohttp
 from auth.client import AuthClient
 from api.accounts import AccountsAPI
 from api.api_manager import APIManagerClient
@@ -10,8 +12,8 @@ from utils.exceptions import ConfigurationError
 from utils.file_output import FileOutput
 from utils.output_config import OutputConfig
 
-def main():
-    """メイン処理"""
+async def main():
+
     # 設定の読み込みと検証
     config = Config()
     if not config.is_valid:
@@ -80,30 +82,47 @@ def main():
         print(f"アプリケーションのコンパクト化時にエラーが発生しました: {e}")
 
     try:
-        # アプリケーション別にポリシー情報とContracts情報を取得
+        # アプリケーション別にポリシー情報とContracts情報を非同期で取得
         policies = []
         contracts = []
-        for env in compact_applications:
-            org_id = env["org_id"]
-            env_id = env["env_id"]
+        async with aiohttp.ClientSession() as session:
+            tasks = []
+            for env in compact_applications:
+                org_id = env["org_id"]
+                env_id = env["env_id"]
 
-            for api in env["apis"]:
-                api_id = api["id"]
-                policy = api_manager_client.get_policies(org_id, env_id, api_id)
-                contract = api_manager_client.get_contracts(org_id, env_id, api_id)
+                for api in env["apis"]:
+                    api_id = api["id"]
+                    tasks.append(asyncio.create_task(
+                        api_manager_client.get_policies_async(session, org_id, env_id, api_id)
+                    ))
+                    tasks.append(asyncio.create_task(
+                        api_manager_client.get_contracts_async(session, org_id, env_id, api_id)
+                    ))
+
+            # すべてのタスクを実行
+            results = await asyncio.gather(*tasks)
+
+            # 結果を整理
+            for i in range(0, len(results), 2):
+                env = compact_applications[i // (2 * len(compact_applications[0]["apis"]))]
+                api = env["apis"][(i // 2) % len(env["apis"])]
+                policy_result = results[i]
+                contract_result = results[i + 1]
+
                 policies.append({
                     "env_name": env["env_name"],
-                    "org_id": org_id,
-                    "env_id": env_id,
-                    "api_id": str(api_id),
-                    "policies": policy["policies"]
+                    "org_id": env["org_id"],
+                    "env_id": env["env_id"],
+                    "api_id": str(api["id"]),
+                    "policies": policy_result["policies"]
                 })
                 contracts.append({
                     "env_name": env["env_name"],
-                    "org_id": org_id,
-                    "env_id": env_id,
-                    "api_id": str(api_id),
-                    "contracts": contract
+                    "org_id": env["org_id"],
+                    "env_id": env["env_id"],
+                    "api_id": str(api["id"]),
+                    "contracts": contract_result
                 })
 
         # ポリシー情報の出力
@@ -123,4 +142,4 @@ def main():
         print(f"ポリシー情報とContracts情報の取得時にエラーが発生しました: {e}")
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
