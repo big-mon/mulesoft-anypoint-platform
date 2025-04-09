@@ -66,12 +66,10 @@ async def test_get_applications(api_manager_client):
 @pytest.mark.asyncio
 async def test_get_applications_error(api_manager_client):
     """アプリケーション取得のエラーテスト"""
-    async def mock_get(*args, **kwargs):
-        mock = Mock()
-        mock.raise_for_status = Mock(side_effect=Exception("Test error"))
-        mock.__aenter__ = Mock(return_value=mock)
-        mock.__aexit__ = Mock(return_value=None)
-        return mock
+    def mock_get(*args, **kwargs):
+        mock_response = MockResponse()
+        mock_response.status = 500
+        return mock_response
 
     with patch("aiohttp.ClientSession.get", side_effect=mock_get):
         with pytest.raises(Exception):
