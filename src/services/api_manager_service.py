@@ -121,32 +121,6 @@ class APIManagerService:
                             "tiers": tier_result
                         })
 
-            # ポリシー情報の出力
-            if self._file_output and self._output_config.get_output_setting("policies"):
-                filename = self._output_config.get_output_filename("policies")
-                file_path = self._file_output.output_json(policies, filename)
-                print(f"ポリシー情報の出力に成功しました：{file_path}")
-
-            # Contracts情報の出力
-            if self._file_output and self._output_config.get_output_setting("contracts"):
-                filename = self._output_config.get_output_filename("contracts")
-                file_path = self._file_output.output_json(contracts, filename)
-                print(f"Contracts情報の出力に成功しました：{file_path}")
-
-            # アラート情報の出力
-            if self._file_output and self._output_config.get_output_setting("alerts"):
-                filename = self._output_config.get_output_filename("alerts")
-                file_path = self._file_output.output_json(alerts, filename)
-                print(f"アラート情報の出力に成功しました：{file_path}")
-
-            # ティア情報の出力
-            if self._file_output and self._output_config.get_output_setting("tiers"):
-                filename = self._output_config.get_output_filename("tiers")
-                file_path = self._file_output.output_json(tiers, filename)
-                print(f"ティア情報の出力に成功しました：{file_path}")
-
-            print("ポリシー情報、Contracts情報、アラート情報、ティア情報の取得に成功しました：")
-
             try:
                 # API Manager情報を統合
                 for env in compact_applications:
