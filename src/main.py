@@ -80,23 +80,7 @@ def main():
 
             # apis.assetsの内容を格納
             if app["apis"]["assets"]:
-                compact_app["apis"] = {
-                    "total": app["apis"]["total"],
-                    "assets": [{
-                        "name": asset["name"],
-                        "exchangeAssetName": asset["exchangeAssetName"],
-                        "assetId": asset["assetId"],
-                        "totalApis": asset["totalApis"],
-                        "apis": [{
-                            "instanceLabel": api["instanceLabel"],
-                            "status": api["status"],
-                            "lastActiveDate": api["lastActiveDate"],
-                            "endpointUri": api["endpointUri"],
-                            "technology": api["technology"],
-                            "activeContractsCount": api["activeContractsCount"]
-                        } for api in asset["apis"]]
-                    } for asset in app["apis"]["assets"]]
-                }
+                compact_app["apis"] = app["apis"]["assets"]
 
             compact_applications.append(compact_app)
 
