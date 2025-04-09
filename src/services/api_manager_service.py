@@ -39,6 +39,7 @@ class APIManagerService:
             policies = []
             contracts = []
             alerts = []
+            tiers = []
             async with aiohttp.ClientSession() as session:
                 tasks = []
                 for env in compact_applications:
@@ -55,6 +56,9 @@ class APIManagerService:
                         ))
                         tasks.append(asyncio.create_task(
                             self._api_manager_client.get_alerts_async(session, org_id, env_id, api_id)
+                        ))
+                        tasks.append(asyncio.create_task(
+                            self._api_manager_client.get_tiers_async(session, org_id, env_id, api_id)
                         ))
 
                 # すべてのタスクを実行
@@ -75,8 +79,8 @@ class APIManagerService:
                     print("処理対象のAPIが見つかりません")
                     return None
 
-                if len(results) != 3 * api_count:
-                    print(f"予期しない結果数です: {len(results)} (expected: {3 * api_count})")
+                if len(results) != 4 * api_count:
+                    print(f"予期しない結果数です: {len(results)} (expected: {4 * api_count})")
                     return None
 
                 result_index = 0
@@ -85,7 +89,8 @@ class APIManagerService:
                         policy_result = results[result_index]
                         contract_result = results[result_index + 1]
                         alert_result = results[result_index + 2]
-                        result_index += 3
+                        tier_result = results[result_index + 3]
+                        result_index += 4
 
                         policies.append({
                             "env_name": env["env_name"],
@@ -127,7 +132,13 @@ class APIManagerService:
                 file_path = self._file_output.output_json(alerts, filename)
                 print(f"アラート情報の出力に成功しました：{file_path}")
 
-            print("ポリシー情報、Contracts情報、アラート情報の取得に成功しました：")
+            # ティア情報の出力
+            if self._file_output and self._output_config.get_output_setting("tiers"):
+                filename = self._output_config.get_output_filename("tiers")
+                file_path = self._file_output.output_json(tiers, filename)
+                print(f"ティア情報の出力に成功しました：{file_path}")
+
+            print("ポリシー情報、Contracts情報、アラート情報、ティア情報の取得に成功しました：")
 
             try:
                 # API Manager情報を統合
@@ -154,6 +165,13 @@ class APIManagerService:
                             api["alerts"] = alert["alerts"]
                         else:
                             api["alerts"] = []
+
+                        # ティア情報の結合
+                        tier = next((t for t in tiers if t["api_id"] == api_id), None)
+                        if tier:
+                            api["tiers"] = tier["tiers"]
+                        else:
+                            api["tiers"] = []
 
                 # 統合したAPI Manager情報の出力
                 if self._file_output and self._output_config.get_output_setting("api_manager"):

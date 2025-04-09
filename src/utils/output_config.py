@@ -59,6 +59,7 @@ class OutputConfig:
             "policies": "policies.json",
             "contracts": "contracts.json",
             "alerts": "alerts.json",
+            "tiers": "tiers.json",
             "api_manager": "api_manager.json"
         }
         return self._config.get(env_key, default_filenames.get(key, f"{key}.json"))
