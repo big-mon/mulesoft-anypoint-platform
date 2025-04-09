@@ -21,17 +21,10 @@ class APIManagerService:
         try:
             # アプリケーションの取得
             applications = self._api_manager_client.get_applications()
+            compact_applications = self._api_manager_client.compact_applications(applications)
             print("アプリケーションの取得に成功しました：")
         except Exception as e:
             print(f"アプリケーションの取得時にエラーが発生しました: {e}")
-            return None
-
-        try:
-            # アプリケーション情報のコンパクト化
-            compact_applications = self._api_manager_client.compact_applications(applications)
-            print("アプリケーションのコンパクト化に成功しました：")
-        except Exception as e:
-            print(f"アプリケーションのコンパクト化時にエラーが発生しました: {e}")
             return None
 
         try:

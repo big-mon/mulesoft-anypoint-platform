@@ -25,8 +25,8 @@ class CloudHubService:
             print(f"アプリケーションの取得時にエラーが発生しました: {e}")
             raise
 
-        # アプリケーション情報の出力
+        # CloudHub情報の出力
         if self._file_output and self._output_config.get_output_setting("cloudhub"):
             filename = self._output_config.get_output_filename("cloudhub")
             file_path = self._file_output.output_json(applications, filename)
-            print(f"アプリケーション情報の出力に成功しました：{file_path}")
+            print(f"CloudHub情報の出力に成功しました：{file_path}")
