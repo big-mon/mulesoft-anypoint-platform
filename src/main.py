@@ -82,7 +82,11 @@ def main():
             if app["apis"]["assets"]:
                 compact_app["apis"] = []
                 for asset in app["apis"]["assets"]:
-                    compact_app["apis"].extend(asset["apis"])
+                    for api in asset["apis"]:
+                        compact_app["apis"].append({
+                            "id": api["id"],
+                            "instanceLabel": api["instanceLabel"]
+                        })
 
             compact_applications.append(compact_app)
 
