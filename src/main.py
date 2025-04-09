@@ -7,6 +7,7 @@ from api.api_manager import APIManagerClient
 from utils.config import Config
 from utils.exceptions import ConfigurationError
 from utils.file_output import FileOutput
+from utils.output_config import OutputConfig
 
 def main():
     """メイン処理"""
@@ -47,9 +48,14 @@ def main():
         applications = api_manager_client.get_applications()
         print("アプリケーションの取得に成功しました：")
 
-        # アプリケーション情報をファイルに出力
-        file_path = FileOutput.output_json(applications, 'applications.json')
-        print(f"アプリケーションの出力に成功しました：{file_path}")
+        # 出力設定の読み込み
+        output_config = OutputConfig()
+        if output_config.is_output_required:
+            file_output = FileOutput()
+            if output_config.get_output_setting("applications"):
+                filename = output_config.get_output_filename("applications")
+                file_path = file_output.output_json(applications, filename)
+                print(f"アプリケーションの出力に成功しました：{file_path}")
 
     except Exception as e:
         print(f"アプリケーションの取得時にエラーが発生しました: {e}")
