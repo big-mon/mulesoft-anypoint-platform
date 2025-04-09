@@ -60,7 +60,8 @@ class APIManagerClient:
                             "exchangeAssetName": asset["exchangeAssetName"],
                             "instanceLabel": api["instanceLabel"],
                             "activeContractsCount": api["activeContractsCount"],
-                            "status": api["status"]
+                            "status": api["status"],
+                            "deployment_applicationId": api["deployment"]["applicationId"] if api["deployment"] else None
                         })
 
             compact_applications.append(compact_app)
