@@ -71,18 +71,18 @@ def main():
 
         # applications配列をループ
         for app in applications:
-            # applications-full.jsonの内容に対して、各env別のapis.assetsを格納
             compact_app = {
                 "env_name": app["env_name"],
                 "org_id": app["org_id"],
                 "env_id": app["env_id"],
                 "apis": []
             }
-            
+
             # apis.assetsの内容を格納
             if app["apis"]["assets"]:
-                for asset in app["apis"]["assets"]:
-                    compact_app["apis"].append({
+                compact_app["apis"] = {
+                    "total": app["apis"]["total"],
+                    "assets": [{
                         "name": asset["name"],
                         "exchangeAssetName": asset["exchangeAssetName"],
                         "assetId": asset["assetId"],
@@ -95,8 +95,9 @@ def main():
                             "technology": api["technology"],
                             "activeContractsCount": api["activeContractsCount"]
                         } for api in asset["apis"]]
-                    })
-            
+                    } for asset in app["apis"]["assets"]]
+                }
+
             compact_applications.append(compact_app)
 
         # コンパクト化されたアプリケーション情報の出力
