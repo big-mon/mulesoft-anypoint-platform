@@ -150,6 +150,12 @@ async def main():
             file_path = file_output.output_json(contracts, filename)
             print(f"Contracts情報の出力に成功しました：{file_path}")
 
+        print("ポリシー情報とContracts情報の取得に成功しました：")
+
+    except Exception as e:
+        print(f"ポリシー情報とContracts情報の取得時にエラーが発生しました: {e}")
+
+    try:
         # API Manager情報を統合
         for env in compact_applications:
             for api in env["apis"]:
@@ -174,15 +180,10 @@ async def main():
             file_path = file_output.output_json(compact_applications, filename)
             print(f"API Manager情報の出力に成功しました：{file_path}")
 
-        # アプリケーション情報のコンパクト化の出力
-        if file_output and output_config.get_output_setting("applications_compact"):
-            filename = output_config.get_output_filename("applications_compact")
-            file_path = file_output.output_json(compact_applications, filename)
-            print(f"コンパクト化されたアプリケーション情報の出力に成功しました：{file_path}")
-
-        print("ポリシー情報とContracts情報の取得に成功しました：")
     except Exception as e:
-        print(f"ポリシー情報とContracts情報の取得時にエラーが発生しました: {e}")
+        print(f"API Manager情報の統合時にエラーが発生しました: {e}")
+
+    print("処理を完了しました。")
 
 if __name__ == "__main__":
     asyncio.run(main())
