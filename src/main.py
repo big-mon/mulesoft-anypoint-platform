@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Anypoint Platform API Client"""
 
+import json
 from auth.client import AuthClient
 from api.accounts import AccountsAPI
 from api.api_manager import APIManagerClient
@@ -15,7 +16,7 @@ def main():
     config = Config()
     if not config.is_valid:
         raise ConfigurationError("必要な環境変数が設定されていません。")
-        
+
     # 出力設定の読み込みとフォルダの準備
     output_config = OutputConfig()
     file_output = None
@@ -51,11 +52,11 @@ def main():
         # API Managerクライアントの初期化
         api_manager_client = APIManagerClient(token, environments)
 
-        # アプリケーションの取得
+        # 環境別アプリケーションの取得
         applications = api_manager_client.get_applications()
         print("アプリケーションの取得に成功しました：")
 
-        # アプリケーション情報の出力
+        # 環境別アプリケーション情報の出力
         if file_output and output_config.get_output_setting("applications"):
             filename = output_config.get_output_filename("applications")
             file_path = file_output.output_json(applications, filename)
@@ -63,6 +64,50 @@ def main():
 
     except Exception as e:
         print(f"アプリケーションの取得時にエラーが発生しました: {e}")
+
+    try:
+        # 環境別アプリケーション情報を解析用にコンパクト化
+        compact_applications = []
+
+        # applications配列をループ
+        for app in applications:
+            # applications-full.jsonの内容に対して、各env別のapis.assetsを格納
+            compact_app = {
+                "env_name": app["env_name"],
+                "org_id": app["org_id"],
+                "env_id": app["env_id"],
+                "apis": []
+            }
+            
+            # apis.assetsの内容を格納
+            if app["apis"]["assets"]:
+                for asset in app["apis"]["assets"]:
+                    compact_app["apis"].append({
+                        "name": asset["name"],
+                        "exchangeAssetName": asset["exchangeAssetName"],
+                        "assetId": asset["assetId"],
+                        "totalApis": asset["totalApis"],
+                        "apis": [{
+                            "instanceLabel": api["instanceLabel"],
+                            "status": api["status"],
+                            "lastActiveDate": api["lastActiveDate"],
+                            "endpointUri": api["endpointUri"],
+                            "technology": api["technology"],
+                            "activeContractsCount": api["activeContractsCount"]
+                        } for api in asset["apis"]]
+                    })
+            
+            compact_applications.append(compact_app)
+
+        # コンパクト化されたアプリケーション情報の出力
+        if file_output and output_config.get_output_setting("applications_compact"):
+            filename = output_config.get_output_filename("applications_compact")
+            file_path = file_output.output_json(compact_applications, filename)
+            print(f"コンパクト化されたアプリケーション情報の出力に成功しました：{file_path}")
+
+        print("アプリケーションのコンパクト化に成功しました：")
+    except Exception as e:
+        print(f"アプリケーションのコンパクト化時にエラーが発生しました: {e}")
 
 if __name__ == "__main__":
     main()
