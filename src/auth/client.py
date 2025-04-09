@@ -5,6 +5,7 @@ import os
 import requests
 from dotenv import load_dotenv
 
+
 class AuthClient:
     """認証クライアント(Access Management API)"""
 

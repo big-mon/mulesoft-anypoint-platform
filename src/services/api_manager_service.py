@@ -7,6 +7,7 @@ from api.api_manager import APIManagerClient
 from utils.file_output import FileOutput
 from utils.output_config import OutputConfig
 
+
 class APIManagerService:
     """API Manager Service"""
 

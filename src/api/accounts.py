@@ -5,6 +5,7 @@ import os
 import requests
 from dotenv import load_dotenv
 
+
 class AccountsAPI:
     """Accounts APIクライアント"""
 
