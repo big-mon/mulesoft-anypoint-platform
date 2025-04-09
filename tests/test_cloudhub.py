@@ -43,22 +43,15 @@ async def test_get_applications(cloudhub_client):
     """アプリケーション取得のテスト"""
     mock_data = [
         {
-            "env_name": "test_env",
-            "org_id": "test_org",
-            "env_id": "test_env_id",
-            "apis": [
-                {
-                    "id": "test_app_id",
-                    "name": "test_app",
-                    "domain": "test-app",
-                    "fullDomain": "test-app.cloudhub.io",
-                    "status": "STARTED",
-                    "muleVersion": "4.4.0",
-                    "properties": {
-                        "env": "test"
-                    }
-                }
-            ]
+            "id": "test_app_id",
+            "name": "test_app",
+            "domain": "test-app",
+            "fullDomain": "test-app.cloudhub.io",
+            "status": "STARTED",
+            "muleVersion": "4.4.0",
+            "properties": {
+                "env": "test"
+            }
         }
     ]
 
