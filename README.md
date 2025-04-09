@@ -7,7 +7,7 @@ MuleSoft の Anypoint Platform API を使用してアプリケーション情報
 - API Manager からアプリケーション情報取得
   - アプリケーション一覧
   - ポリシー設定
-  - Contracts情報
+  - Contracts 情報
   - アラート情報
   - ティア情報
 - Runtime Manager からアプリケーション情報取得
@@ -22,30 +22,31 @@ MuleSoft の Anypoint Platform API を使用してアプリケーション情報
 ## インストール方法
 
 1. リポジトリのクローン
+
 ```bash
 git clone https://github.com/big-mon/mulesoft-anypoint-platform.git
 cd mulesoft-anypoint-platform
 ```
 
 2. 依存パッケージのインストール
+
 ```bash
 pip install -r requirements.txt
 ```
 
 3. 環境変数の設定
+
 ```bash
 cp .env.example .env
 ```
 
 `.env`ファイルを編集し、以下の情報を設定してください：
+
 - `ANYPOINT_CLIENT_ID`: Anypoint Platform の Client ID
 - `ANYPOINT_CLIENT_SECRET`: Anypoint Platform の Client Secret
-- `ANYPOINT_ORGANIZATION_ID`: 組織ID
+- `ANYPOINT_ORGANIZATION_ID`: 組織 ID
 
 4. 出力設定の設定
-```bash
-cp config/output_config.env.example config/output_config.env
-```
 
 `output_config.env`ファイルで、各種情報の出力要否や出力ファイル名を設定できます。
 
