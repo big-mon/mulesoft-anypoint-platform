@@ -16,7 +16,11 @@ class FileOutput:
         """出力先フォルダを準備する"""
         now = datetime.now()
         timestamp_str = now.strftime("%Y%m%d_%H%M")
-        self._output_folder = os.path.join("output", timestamp_str)
+        output_base = "output"
+        # 基本出力ディレクトリが存在しない場合は作成
+        if not os.path.exists(output_base):
+            os.makedirs(output_base)
+        self._output_folder = os.path.join(output_base, timestamp_str)
         os.makedirs(self._output_folder, exist_ok=True)
 
     def output_json(self, data: dict, filename: str) -> str:

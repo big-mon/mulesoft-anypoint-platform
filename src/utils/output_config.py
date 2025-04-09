@@ -54,4 +54,11 @@ class OutputConfig:
             str: 出力ファイル名
         """
         env_key = f"{key.upper()}_FILENAME"
-        return self._config.get(env_key, "")
+        # デフォルトのファイル名を設定
+        default_filenames = {
+            "policies": "policies.json",
+            "contracts": "contracts.json",
+            "alerts": "alerts.json",
+            "api_manager": "api_manager.json"
+        }
+        return self._config.get(env_key, default_filenames.get(key, f"{key}.json"))
