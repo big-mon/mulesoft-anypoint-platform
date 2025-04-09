@@ -27,7 +27,7 @@ class AuthClient:
             'client_id': self.__client_id,
             'client_secret': self.__client_secret
         }
-        response = self.session.post(auth_url, data=payload)
+        response = self._session.post(auth_url, data=payload)
         response.raise_for_status()
 
         self.__access_token = response.json()['access_token']
