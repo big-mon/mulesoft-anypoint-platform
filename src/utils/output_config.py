@@ -1,8 +1,8 @@
 """出力設定を制御するモジュール"""
 
-import json
 import os
 from typing import Dict
+import yaml
 
 
 class OutputConfig:
@@ -14,10 +14,10 @@ class OutputConfig:
 
     def _load_config(self):
         """設定ファイルを読み込む"""
-        config_path = "config/output_config.json"
+        config_path = "config/output_config.yaml"
         if os.path.exists(config_path):
             with open(config_path, "r", encoding="utf-8") as f:
-                self._config = json.load(f)
+                self._config = yaml.safe_load(f)
 
     @property
     def is_output_required(self) -> bool:
@@ -48,7 +48,4 @@ class OutputConfig:
         Returns:
             str: 出力ファイル名
         """
-        output_filenames = {
-            "applications": "applications-full.json"
-        }
-        return output_filenames.get(key, "")
+        return self._config.get(key, {}).get("filename", "")
