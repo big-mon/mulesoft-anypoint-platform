@@ -1,3 +1,6 @@
+#!/usr/bin/env python3
+"""CloudHub Service"""
+
 import asyncio
 import aiohttp
 from api.cloudhub import CloudHubClient
