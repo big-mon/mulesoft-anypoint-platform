@@ -21,20 +21,20 @@ class APIManagerClient:
         # environmentsを全件ループしてアプリケーションを取得
         applications = []
         for env in self._environments:
-          url = f"{self._base_url}/apimanager/api/v1/organizations/{env['org_id']}/environments/{env['env_id']}/apis"
-          params = {
-            'sort': 'name'
-          }
-          response = self.__session.get(url, params=params)
-          response.raise_for_status()
+            url = f"{self._base_url}/apimanager/api/v1/organizations/{env['org_id']}/environments/{env['env_id']}/apis"
+            params = {
+                'sort': 'name'
+            }
+            response = self.__session.get(url, params=params)
+            response.raise_for_status()
 
-          data = {
-            'env_name': env['name'],
-            'org_id': env['org_id'],
-            'env_id': env['env_id'],
-            'apis': response.json()
-          }
-          applications.append(data)
+            data = {
+                'env_name': env['name'],
+                'org_id': env['org_id'],
+                'env_id': env['env_id'],
+                'apis': response.json()
+            }
+            applications.append(data)
         return applications
 
     def compact_applications(self, applications):
