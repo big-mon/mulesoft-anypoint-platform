@@ -1,61 +1,49 @@
-# 要件メモ
+# Requirements
 
-## 1. 目的
+## Functional Requirements
 
-MuleSoft Anypoint Platform の API Manager API と Runtime Manager API を利用し、環境ごとの情報を取得して JSON として保存する。
+- Use MuleSoft Anypoint Platform APIs to export:
+  - API Manager API list and detail data
+  - Runtime Manager application data
+- Write results as JSON files under `output/YYYYMMDD_HHMM/`
+- Support optional proxy configuration for outbound requests
+- Keep the current output file controls through `config/output_config.env`
 
-## 2. 取得対象
+## Technical Requirements
 
-### API Manager
+- Use Python 3.8+
+- Use `aiohttp` for all outbound HTTP traffic
+- Use `python-dotenv` for environment loading
+- Keep the main workflow asynchronous end-to-end
 
-- API 一覧
-- Policies
-- Contracts
-- Alerts
-- Tiers
+## Non-Functional Requirements
 
-### Runtime Manager
+- Share one HTTP transport across authentication, environment lookup, and export flows
+- Apply conservative rate limiting to avoid burst traffic
+- Limit concurrent requests with a global semaphore
+- Enforce a minimum interval between requests
+- Retry only retryable responses: `429` and `503`
+- Honor `Retry-After` when present
+- Fall back to exponential backoff with jitter when `Retry-After` is absent
+- Keep retry and pacing settings configurable through `.env`
+- Preserve existing proxy behavior for HTTP and HTTPS targets
 
-- アプリケーション一覧
-- デプロイメント関連情報
-- 実行ステータス
+## Default HTTP Safety Settings
 
-## 3. 出力要件
+- `ANYPOINT_HTTP_MAX_CONCURRENCY=5`
+- `ANYPOINT_HTTP_MIN_INTERVAL_MS=200`
+- `ANYPOINT_HTTP_MAX_RETRIES=5`
+- `ANYPOINT_HTTP_BACKOFF_BASE_MS=500`
+- `ANYPOINT_HTTP_BACKOFF_MAX_MS=10000`
+- `ANYPOINT_HTTP_TIMEOUT_SECONDS=30`
 
-- API Manager と Runtime Manager は別ファイルで出力する
-- それぞれ取得できる全量を保持する
-- 出力形式は JSON
-- 出力先は `output/YYYYMMDD_HHMM/`
+## Test Requirements
 
-出力ファイル:
-
-- `api_manager.json`
-- `cloudhub.json`
-
-## 4. 実装方針
-
-- 処理は出力物単位で分ける
-- 各処理は `取得 -> 整形 -> 出力` を基本フローとする
-- 過剰なレイヤー分割は行わない
-- 共通化は認証、環境一覧取得、出力処理に限定する
-- API Manager と Runtime Manager の情報は統合しない
-
-## 5. 非機能要件
-
-- 複数環境の取得は非同期で行う
-- 取得失敗時はエラー内容を標準出力へ表示する
-- 出力有無とファイル名は `config/output_config.env` で切り替えられる
-
-## 6. テスト観点
-
-- API Manager
-  - 一覧取得結果の整形
-  - 詳細情報の反映
-  - API 0 件時の出力
-  - 詳細情報が空のときの出力
-- Runtime Manager
-  - 環境ごとの取得結果整形
-  - 出力無効時の挙動
-- 共通
-  - 出力設定の読み込み
-  - JSON ファイル出力
+- Validate export formatting for both API Manager and Runtime Manager
+- Validate proxy resolution for shared and scheme-specific proxies
+- Validate auth and Accounts API requests after async migration
+- Validate retry behavior for:
+  - `429` with `Retry-After`
+  - `503` without `Retry-After`
+  - non-retryable `4xx`
+- Validate concurrency limiting behavior

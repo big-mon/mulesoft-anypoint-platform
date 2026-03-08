@@ -2,36 +2,63 @@
 """Export Runtime Manager information."""
 
 import asyncio
-import os
-
-import aiohttp
-from dotenv import load_dotenv
 
 try:
-    from utils.proxy import ProxyConfig
+    from utils.config import Config
+    from utils.http_client import AsyncHTTPClient
 except ImportError:
-    from src.utils.proxy import ProxyConfig
+    from src.utils.config import Config
+    from src.utils.http_client import AsyncHTTPClient
 
 
-load_dotenv()
-REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10, sock_read=30)
-
-
-async def export_cloudhub_info(access_token, environments, file_output, output_config):
+async def export_cloudhub_info(
+    access_token,
+    environments,
+    file_output,
+    output_config,
+    http_client=None,
+    config=None,
+):
     """Fetch, transform, and optionally output Runtime Manager information."""
-    base_url = os.getenv("ANYPOINT_BASE_URL", "https://anypoint.mulesoft.com")
+    config = config or Config()
     headers = {"Authorization": f"Bearer {access_token}"}
-    proxy_config = ProxyConfig()
 
-    try:
-        async with aiohttp.ClientSession(headers=headers, timeout=REQUEST_TIMEOUT) as session:
-            applications = await _fetch_applications(
-                session,
-                base_url,
+    if http_client is None:
+        async with AsyncHTTPClient(config) as owned_http_client:
+            return await _export_cloudhub_info(
+                owned_http_client,
+                config.get_base_url(),
+                headers,
                 environments,
-                proxy_config,
+                file_output,
+                output_config,
             )
 
+    return await _export_cloudhub_info(
+        http_client,
+        config.get_base_url(),
+        headers,
+        environments,
+        file_output,
+        output_config,
+    )
+
+
+async def _export_cloudhub_info(
+    http_client,
+    base_url,
+    headers,
+    environments,
+    file_output,
+    output_config,
+):
+    try:
+        applications = await _fetch_applications(
+            http_client,
+            base_url,
+            headers,
+            environments,
+        )
         formatted_applications = _format_applications(applications)
         _output_cloudhub_info(formatted_applications, file_output, output_config)
         print("Runtime Manager information exported successfully.")
@@ -41,28 +68,30 @@ async def export_cloudhub_info(access_token, environments, file_output, output_c
         raise
 
 
-async def _fetch_applications(session, base_url, environments, proxy_config):
+async def _fetch_applications(http_client, base_url, headers, environments):
     """Fetch all environments and fail fast if any request fails."""
     tasks = [
-        _fetch_environment_applications(session, base_url, environment, proxy_config)
+        _fetch_environment_applications(http_client, base_url, headers, environment)
         for environment in environments
     ]
     return await asyncio.gather(*tasks)
 
 
-async def _fetch_environment_applications(session, base_url, environment, proxy_config):
-    url = f"{base_url}/cloudhub/api/v2/applications"
-    headers = {"X-ANYPNT-ENV-ID": environment["env_id"]}
-    request_kwargs = proxy_config.get_aiohttp_request_kwargs(url)
-
-    async with session.get(url, headers=headers, **request_kwargs) as response:
-        response.raise_for_status()
-        return {
-            "env_name": environment["name"],
-            "org_id": environment["org_id"],
-            "env_id": environment["env_id"],
-            "apis": await response.json(),
-        }
+async def _fetch_environment_applications(http_client, base_url, headers, environment):
+    request_headers = {
+        **headers,
+        "X-ANYPNT-ENV-ID": environment["env_id"],
+    }
+    payload = await http_client.get_json(
+        f"{base_url}/cloudhub/api/v2/applications",
+        headers=request_headers,
+    )
+    return {
+        "env_name": environment["name"],
+        "org_id": environment["org_id"],
+        "env_id": environment["env_id"],
+        "apis": payload,
+    }
 
 
 def _format_applications(applications):
