@@ -19,6 +19,7 @@ class AccountsAPI:
         self._base_url = os.getenv('ANYPOINT_BASE_URL')
         self._organization_id = os.getenv('ANYPOINT_ORGANIZATION_ID')
         self.__session = requests.Session()
+        self.__session.trust_env = False
         self.__session.headers.update({
             'Authorization': f'Bearer {token}'
         })

@@ -50,6 +50,7 @@ def test_auth_client_uses_configured_proxy(monkeypatch):
 
     client = AuthClient()
 
+    assert client._session.trust_env is False
     assert client._session.proxies == {
         "http": "http://proxy.local:8080",
         "https": "http://proxy.local:8080",
@@ -66,4 +67,5 @@ def test_accounts_api_keeps_direct_requests_when_proxy_is_not_configured(monkeyp
 
     client = AccountsAPI("token")
 
+    assert client._AccountsAPI__session.trust_env is False
     assert client._AccountsAPI__session.proxies == {}

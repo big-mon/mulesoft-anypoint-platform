@@ -21,6 +21,7 @@ class AuthClient:
         self.__client_secret = os.getenv('ANYPOINT_CLIENT_SECRET')
         self._base_url = os.getenv('ANYPOINT_BASE_URL')
         self._session = requests.Session()
+        self._session.trust_env = False
         self._session.proxies.update(ProxyConfig().get_requests_proxies())
 
     def get_access_token(self):
