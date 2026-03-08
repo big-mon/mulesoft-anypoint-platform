@@ -2,127 +2,115 @@
 
 ![](./mulesoft.jpg)
 
-MuleSoft の Anypoint Platform API を使用してアプリケーション情報を取得する Python プログラムです。API Manager や CloudHub の情報を非同期で効率的に取得し、JSON 形式で出力します。
+MuleSoft Anypoint Platform の API Manager API と Runtime Manager API を使い、環境ごとの情報を取得して JSON として出力する Python スクリプトです。
 
 ## 概要
 
-このツールは以下のような場合に便利です：
+- `api_manager.json`: API Manager の一覧と詳細情報を出力
+- `cloudhub.json`: Runtime Manager のアプリケーション情報を出力
+- `src/main.py` から 2 系統の処理を並列実行
 
-- Anypoint Platform の API 情報を一括で取得したい場合
-- CloudHub のアプリケーション情報を環境横断で取得したい場合
-- 取得した情報を構造化された JSON として保存したい場合
+このリポジトリでは、出力物ごとに処理を 1 モジュールへまとめています。各モジュールは `API呼び出し -> 必要項目へ整形 -> JSON出力` の順で読める構造です。
 
-## 機能
+## 主な機能
 
-### API Manager 情報取得
+### API Manager
 
-- アプリケーション一覧
-- ポリシー設定
-- Contracts 情報
-- アラート情報
-- ティア情報
+- API 一覧取得
+- Policies 取得
+- Contracts 取得
+- Alerts 取得
+- Tiers 取得
+- 出力用 JSON への整形
 
-### CloudHub 情報取得
+### Runtime Manager
 
-- アプリケーション一覧
-- デプロイメント情報
-- ステータス情報
+- アプリケーション一覧取得
+- 出力用 JSON への整形
 
-### その他の特徴
-
-- 非同期処理による高速な情報取得
-- 柔軟な出力設定
-- エラーハンドリング
-
-## 必要な環境
+## 必要環境
 
 - Python 3.8 以上
-- 必要なライブラリ
-  - requests
-  - aiohttp
-  - python-dotenv
+- 必要ライブラリ
+  - `requests`
+  - `aiohttp`
+  - `python-dotenv`
+  - `pytest`
+  - `pytest-asyncio`
 
-## インストール方法
+## セットアップ
 
 ```bash
-# 1. リポジトリのクローン
 git clone https://github.com/big-mon/mulesoft-anypoint-platform.git
 cd mulesoft-anypoint-platform
-
-# 2. 依存パッケージのインストール
 pip install -r requirements.txt
-
-# 3. 環境変数の設定
 cp .env.example .env
 ```
 
-`.env`ファイルを編集し、以下の情報を設定してください：
+`.env` に以下を設定してください。
 
-- `ANYPOINT_CLIENT_ID`: Anypoint Platform の Client ID
-- `ANYPOINT_CLIENT_SECRET`: Anypoint Platform の Client Secret
-- `ANYPOINT_ORGANIZATION_ID`: 組織 ID
-- `ANYPOINT_BASE_URL`: Anypoint Platform の Base URL（オプション）
+- `ANYPOINT_CLIENT_ID`
+- `ANYPOINT_CLIENT_SECRET`
+- `ANYPOINT_ORGANIZATION_ID`
+- `ANYPOINT_BASE_URL`
 
-4. 出力設定
+`ANYPOINT_BASE_URL` を省略した場合は `https://anypoint.mulesoft.com` を使用します。
 
-`output_config.env`ファイルで、各種情報の出力要否や出力ファイル名を設定できます。
+## 出力設定
 
-## 使用方法
+`config/output_config.env` で出力有無とファイル名を制御できます。
 
-### 基本的な使用方法
+- `API_MANAGER_ENABLED`
+- `API_MANAGER_FILENAME`
+- `CLOUDHUB_ENABLED`
+- `CLOUDHUB_FILENAME`
+
+## 実行方法
 
 ```bash
 python src/main.py
 ```
 
-### 出力ファイル
+実行すると `output/YYYYMMDD_HHMM/` 配下に以下を出力します。
 
-実行すると、以下のファイルが `output/YYYYMMDD_HHMM/` ディレクトリに出力されます：
+- `api_manager.json`
+- `cloudhub.json`
 
-- `api_manager.json`: API Manager の情報
-- `cloudhub.json`: CloudHub の情報
+## 構成
 
-## トラブルシューティング
+- `src/main.py`
+  - 認証、環境一覧取得、出力準備、2 系統の処理起動
+- `src/api_manager_export.py`
+  - API Manager の取得、整形、詳細反映、出力
+- `src/cloudhub_export.py`
+  - Runtime Manager の取得、整形、出力
+- `src/api/accounts.py`
+  - 組織配下の環境一覧取得
+- `src/auth/client.py`
+  - OAuth トークン取得
+- `src/utils/file_output.py`
+  - 出力ディレクトリ作成と JSON 出力
+- `src/utils/output_config.py`
+  - 出力設定読み込み
 
-### よくあるエラー
+詳細は [docs/structure.md](docs/structure.md) を参照してください。
 
-1. 認証エラー
-
-   - Client ID、Client Secret、Organization ID が正しく設定されているか確認してください
-
-2. ネットワークエラー
-   - Anypoint Platform への接続が可能か確認してください
-   - プロキシ設定が必要な場合は環境変数で設定してください
-
-## 開発者向け情報
-
-### テスト
+## テスト
 
 ```bash
 python -m pytest tests/
 ```
 
-### コーディング規約
+## よくある問題
 
-- PEP 8 に準拠
-- Type hints の使用を推奨
-- Docstring は Google スタイルを使用
+### 認証エラー
 
-## コントリビューション
+- `.env` の認証情報が正しいか確認してください。
 
-1. このリポジトリをフォーク
-2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
-3. 変更をコミット (`git commit -m 'add: some amazing feature'`)
-4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
-5. Pull Request を作成
+### ネットワークエラー
 
-## バグ報告・機能要望
-
-バグを発見した場合や新機能の要望がある場合は、GitHub の Issue に登録してください。
-
-## 更新履歴
-
-詳細な更新履歴は[CHANGELOG.md](CHANGELOG.md)を参照してください。
+- Anypoint Platform へ接続できるか確認してください。
+- プロキシが必要な環境では環境変数で設定してください。
 
 ## ライセンス
 

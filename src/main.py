@@ -1,78 +1,75 @@
 #!/usr/bin/env python3
-"""Anypoint Platform API Client"""
+"""Anypoint Platform API Client."""
 
 import asyncio
-from auth.client import AuthClient
+
 from api.accounts import AccountsAPI
-from api.api_manager import APIManagerClient
-from api.cloudhub import CloudHubClient
+from api_manager_export import export_api_manager_info
+from auth.client import AuthClient
+from cloudhub_export import export_cloudhub_info
 from utils.config import Config
 from utils.file_output import FileOutput
 from utils.output_config import OutputConfig
-from services.api_manager_service import APIManagerService
-from services.cloudhub_service import CloudHubService
+
 
 async def main():
-    """メイン処理"""
-    # 設定の読み込みと検証
+    """Main entry point."""
     config = Config()
     if not config.is_valid:
         return
 
-    # 認証クライアントの初期化
     auth_client = AuthClient()
 
-    # アクセストークンの取得
     try:
         access_token = auth_client.get_access_token()
-        print("アクセストークンの取得に成功しました：")
-    except Exception as e:
-        print(f"アクセストークンの取得時にエラーが発生しました: {e}")
+        print("Access token retrieved successfully.")
+    except Exception as exc:
+        print(f"Failed to retrieve access token: {exc}")
         return
 
-    # 出力設定の読み込み
     output_config = OutputConfig()
 
-    # ファイル出力クライアントの初期化
     file_output = FileOutput()
     file_output.prepare_output_folder()
 
-    # 組織情報の取得
     try:
         accounts_api = AccountsAPI(access_token)
         environments = accounts_api.get_organization_environments()
-        print("組織情報の取得に成功しました：")
-    except Exception as e:
-        print(f"組織情報の取得時にエラーが発生しました: {e}")
+        print("Organization environments retrieved successfully.")
+    except Exception as exc:
+        print(f"Failed to retrieve organization environments: {exc}")
         return
 
-    # 環境情報の整形
-    formatted_environments = []
-    for env in environments['data']:
-        formatted_environments.append({
-            'name': env['name'],
-            'org_id': env['organizationId'],
-            'env_id': env['id']
-        })
+    formatted_environments = [
+        {
+            "name": environment["name"],
+            "org_id": environment["organizationId"],
+            "env_id": environment["id"],
+        }
+        for environment in environments.get("data", [])
+    ]
 
     try:
-        # API ManagerとCloudHubのクライアントを初期化
-        api_manager_client = APIManagerClient(access_token, formatted_environments)
-        api_manager_service = APIManagerService(api_manager_client, file_output, output_config)
-
-        cloudhub_client = CloudHubClient(access_token, formatted_environments)
-        cloudhub_service = CloudHubService(cloudhub_client, file_output, output_config)
-
-        # 両方の情報を非同期で取得
         await asyncio.gather(
-            api_manager_service.get_api_manager_info(),
-            cloudhub_service.get_cloudhub_info()
+            export_api_manager_info(
+                access_token,
+                formatted_environments,
+                file_output,
+                output_config,
+            ),
+            export_cloudhub_info(
+                access_token,
+                formatted_environments,
+                file_output,
+                output_config,
+            ),
         )
-    except Exception as e:
-        print(f"情報取得時にエラーが発生しました: {e}")
+    except Exception as exc:
+        print(f"Failed to export information: {exc}")
         return
 
-    print("処理を完了しました：")
+    print("Completed.")
+
 
 if __name__ == "__main__":
     asyncio.run(main())
