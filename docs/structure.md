@@ -18,6 +18,7 @@ mulesoft-anypoint-platform/
 │   │   ├── http_client.py
 │   │   ├── output_config.py
 │   │   └── proxy.py
+│   ├── export_common.py
 │   ├── api_manager_export.py
 │   ├── cloudhub_export.py
 │   └── main.py
@@ -26,11 +27,12 @@ mulesoft-anypoint-platform/
 
 ## Runtime Flow
 
-1. `src/main.py` loads configuration and creates a shared `AsyncHTTPClient`.
+1. `python -m src.main` loads configuration and creates a shared `AsyncHTTPClient`.
 2. `src/auth/client.py` retrieves the OAuth access token.
 3. `src/api/accounts.py` fetches organization environments.
-4. `src/api_manager_export.py` and `src/cloudhub_export.py` run concurrently.
-5. Each export module transforms the payload and writes JSON output when enabled.
+4. `src/export_common.py` resolves shared export context.
+5. `src/api_manager_export.py` and `src/cloudhub_export.py` run concurrently.
+6. Each export module transforms the payload and writes JSON output when enabled.
 
 ## Module Responsibilities
 
@@ -39,6 +41,12 @@ mulesoft-anypoint-platform/
 - Loads `.env` and output configuration
 - Creates the shared async transport
 - Orchestrates authentication, environment lookup, and both exports
+
+### `src/export_common.py`
+
+- Resolves the export config, base URL, and auth header
+- Creates an owned transport only when a caller did not inject one
+- Handles shared output writing for export modules
 
 ### `src/auth/client.py`
 
@@ -90,6 +98,6 @@ mulesoft-anypoint-platform/
 
 ## Test Strategy
 
-- Export modules are tested by injecting a fake transport
+- Export modules are tested by injecting a fake transport from `tests/conftest.py`
 - The shared HTTP client is tested directly for retry, proxy, and concurrency behavior
 - Auth and Accounts API modules are tested independently from the export modules

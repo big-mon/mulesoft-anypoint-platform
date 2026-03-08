@@ -8,8 +8,9 @@ MuleSoft Anypoint Platform の環境単位データを取得し、JSON ファイ
 
 - `api_manager.json`: API Manager の API 一覧と詳細情報
 - `cloudhub.json`: Runtime Manager のアプリケーション情報
-- `src/main.py` から 2 つの export 処理を並列実行
+- `python -m src.main` で 2 つの export 処理を並列実行
 - 外部 API 呼び出しは共有 `aiohttp` transport で一元管理
+- export の共通セットアップは `src/export_common.py` に集約
 
 ## 主な機能
 
@@ -85,7 +86,7 @@ cp .env.example .env
 ## 実行方法
 
 ```bash
-.venv\Scripts\python src/main.py
+.venv\Scripts\python -m src.main
 ```
 
 出力ファイルは `output/YYYYMMDD_HHMM/` に保存されます。
@@ -106,6 +107,8 @@ ANYPOINT_HTTP_MAX_RETRIES=4
 
 - `src/main.py`
   - 設定読み込み、共有 transport 作成、認証、環境取得、export 起動
+- `src/export_common.py`
+  - export 共通のヘッダ生成、owned client 管理、出力処理
 - `src/auth/client.py`
   - OAuth アクセストークンの取得とキャッシュ
 - `src/api/accounts.py`

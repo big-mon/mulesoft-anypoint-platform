@@ -4,20 +4,7 @@ import pytest
 
 from src.auth.client import AuthClient
 from src.utils.config import Config
-
-
-class FakeHTTPClient:
-    """Minimal async transport stub."""
-
-    def __init__(self, response):
-        self._response = response
-        self.calls = []
-
-    async def post_json(self, url, *, headers=None, data=None):
-        self.calls.append({"url": url, "headers": headers, "data": data})
-        if isinstance(self._response, Exception):
-            raise self._response
-        return self._response
+from tests.conftest import FakeHTTPClient
 
 
 @pytest.mark.asyncio
@@ -27,7 +14,7 @@ async def test_get_access_token_fetches_and_caches(monkeypatch):
     monkeypatch.setenv("ANYPOINT_CLIENT_SECRET", "client-secret")
     monkeypatch.setenv("ANYPOINT_ORGANIZATION_ID", "org-id")
     monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
-    http_client = FakeHTTPClient({"access_token": "token-1"})
+    http_client = FakeHTTPClient(post_responder=lambda url, **kwargs: {"access_token": "token-1"})
     client = AuthClient(http_client, config=Config())
 
     first_token = await client.get_access_token()
@@ -37,8 +24,10 @@ async def test_get_access_token_fetches_and_caches(monkeypatch):
     assert second_token == "token-1"
     assert http_client.calls == [
         {
+            "method": "POST",
             "url": "https://example.com/accounts/api/v2/oauth2/token",
             "headers": None,
+            "params": None,
             "data": {
                 "grant_type": "client_credentials",
                 "client_id": "client-id",
@@ -56,16 +45,14 @@ async def test_refresh_token_forces_refetch(monkeypatch):
     monkeypatch.setenv("ANYPOINT_ORGANIZATION_ID", "org-id")
     monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
 
-    class SequencedHTTPClient:
-        def __init__(self):
-            self.responses = iter(
-                [{"access_token": "token-1"}, {"access_token": "token-2"}]
-            )
+    responses = iter(
+        [{"access_token": "token-1"}, {"access_token": "token-2"}]
+    )
+    http_client = FakeHTTPClient(
+        post_responder=lambda url, **kwargs: next(responses)
+    )
 
-        async def post_json(self, url, *, headers=None, data=None):
-            return next(self.responses)
-
-    client = AuthClient(SequencedHTTPClient(), config=Config())
+    client = AuthClient(http_client, config=Config())
 
     assert await client.get_access_token() == "token-1"
     assert await client.refresh_token() == "token-2"

@@ -15,10 +15,13 @@
 - Use `aiohttp` for all outbound HTTP traffic
 - Use `python-dotenv` for environment loading
 - Keep the main workflow asynchronous end-to-end
+- Support `python -m src.main` as the canonical entrypoint
+- Keep package imports consistent without `ImportError` fallback branches
 
 ## Non-Functional Requirements
 
 - Share one HTTP transport across authentication, environment lookup, and export flows
+- Keep export setup compact by centralizing shared export behavior in one helper module
 - Apply conservative rate limiting to avoid burst traffic
 - Limit concurrent requests with a global semaphore
 - Enforce a minimum interval between requests
@@ -40,6 +43,7 @@
 ## Test Requirements
 
 - Validate export formatting for both API Manager and Runtime Manager
+- Validate injected transport behavior without creating an owned transport
 - Validate proxy resolution for shared and scheme-specific proxies
 - Validate auth and Accounts API requests after async migration
 - Validate retry behavior for:

@@ -3,12 +3,7 @@
 
 import asyncio
 
-try:
-    from utils.config import Config
-    from utils.http_client import AsyncHTTPClient
-except ImportError:
-    from src.utils.config import Config
-    from src.utils.http_client import AsyncHTTPClient
+from src.export_common import export_runtime, write_export_output
 
 
 async def export_cloudhub_info(
@@ -20,28 +15,20 @@ async def export_cloudhub_info(
     config=None,
 ):
     """Fetch, transform, and optionally output Runtime Manager information."""
-    config = config or Config()
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    if http_client is None:
-        async with AsyncHTTPClient(config) as owned_http_client:
-            return await _export_cloudhub_info(
-                owned_http_client,
-                config.get_base_url(),
-                headers,
-                environments,
-                file_output,
-                output_config,
-            )
-
-    return await _export_cloudhub_info(
-        http_client,
-        config.get_base_url(),
-        headers,
-        environments,
-        file_output,
-        output_config,
-    )
+    async with export_runtime(
+        access_token,
+        http_client=http_client,
+        config=config,
+    ) as runtime:
+        _, headers, base_url, active_http_client = runtime
+        return await _export_cloudhub_info(
+            active_http_client,
+            base_url,
+            headers,
+            environments,
+            file_output,
+            output_config,
+        )
 
 
 async def _export_cloudhub_info(
@@ -107,7 +94,10 @@ def _format_applications(applications):
 
 
 def _output_cloudhub_info(applications, file_output, output_config):
-    if file_output and output_config.get_output_setting("cloudhub"):
-        filename = output_config.get_output_filename("cloudhub")
-        file_path = file_output.output_json(applications, filename)
-        print(f"Runtime Manager output saved to: {file_path}")
+    write_export_output(
+        "cloudhub",
+        "Runtime Manager",
+        applications,
+        file_output,
+        output_config,
+    )

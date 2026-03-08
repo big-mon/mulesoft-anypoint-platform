@@ -3,12 +3,7 @@
 
 import asyncio
 
-try:
-    from utils.config import Config
-    from utils.http_client import AsyncHTTPClient
-except ImportError:
-    from src.utils.config import Config
-    from src.utils.http_client import AsyncHTTPClient
+from src.export_common import export_runtime, write_export_output
 
 
 async def export_api_manager_info(
@@ -20,28 +15,24 @@ async def export_api_manager_info(
     config=None,
 ):
     """Fetch, transform, and optionally output API Manager information."""
-    config = config or Config()
-    headers = {"Authorization": f"Bearer {access_token}"}
-
-    if http_client is None:
-        async with AsyncHTTPClient(config) as owned_http_client:
+    try:
+        async with export_runtime(
+            access_token,
+            http_client=http_client,
+            config=config,
+        ) as runtime:
+            _, headers, base_url, active_http_client = runtime
             return await _export_api_manager_info(
-                owned_http_client,
-                config.get_base_url(),
+                active_http_client,
+                base_url,
                 headers,
                 environments,
                 file_output,
                 output_config,
             )
-
-    return await _export_api_manager_info(
-        http_client,
-        config.get_base_url(),
-        headers,
-        environments,
-        file_output,
-        output_config,
-    )
+    except Exception as exc:
+        print(f"Failed to export API Manager information: {exc}")
+        return None
 
 
 async def _export_api_manager_info(
@@ -52,27 +43,23 @@ async def _export_api_manager_info(
     file_output,
     output_config,
 ):
-    try:
-        applications = await _fetch_applications(
-            http_client,
-            base_url,
-            headers,
-            environments,
-        )
-        formatted_applications = _format_applications(applications)
-        detail_map = await _fetch_detail_map(
-            http_client,
-            base_url,
-            headers,
-            formatted_applications,
-        )
-        _apply_detail_map(formatted_applications, detail_map)
-        _output_api_manager_info(formatted_applications, file_output, output_config)
-        print("API Manager information exported successfully.")
-        return formatted_applications
-    except Exception as exc:
-        print(f"Failed to export API Manager information: {exc}")
-        return None
+    applications = await _fetch_applications(
+        http_client,
+        base_url,
+        headers,
+        environments,
+    )
+    formatted_applications = _format_applications(applications)
+    detail_map = await _fetch_detail_map(
+        http_client,
+        base_url,
+        headers,
+        formatted_applications,
+    )
+    _apply_detail_map(formatted_applications, detail_map)
+    _output_api_manager_info(formatted_applications, file_output, output_config)
+    print("API Manager information exported successfully.")
+    return formatted_applications
 
 
 async def _fetch_applications(http_client, base_url, headers, environments):
@@ -196,7 +183,10 @@ def _apply_detail_map(applications, detail_map):
 
 
 def _output_api_manager_info(applications, file_output, output_config):
-    if file_output and output_config.get_output_setting("api_manager"):
-        filename = output_config.get_output_filename("api_manager")
-        file_path = file_output.output_json(applications, filename)
-        print(f"API Manager output saved to: {file_path}")
+    write_export_output(
+        "api_manager",
+        "API Manager",
+        applications,
+        file_output,
+        output_config,
+    )

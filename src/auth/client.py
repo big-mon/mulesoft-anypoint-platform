@@ -1,10 +1,7 @@
 #!/usr/bin/env python3
 """Anypoint authentication client."""
 
-try:
-    from utils.config import Config
-except ImportError:
-    from src.utils.config import Config
+from src.utils.config import Config
 
 
 class AuthClient:

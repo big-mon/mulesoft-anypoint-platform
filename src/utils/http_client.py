@@ -7,10 +7,7 @@ from email.utils import parsedate_to_datetime
 
 import aiohttp
 
-try:
-    from utils.proxy import ProxyConfig
-except ImportError:
-    from src.utils.proxy import ProxyConfig
+from src.utils.proxy import ProxyConfig
 
 
 RETRYABLE_STATUSES = {429, 503}

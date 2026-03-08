@@ -8,7 +8,7 @@ A Python tool that fetches environment-level data from MuleSoft Anypoint Platfor
 
 - `api_manager.json`: API Manager list plus policy, contract, alert, and tier details
 - `cloudhub.json`: Runtime Manager application data
-- `src/main.py` runs both export flows concurrently
+- `python -m src.main` runs both export flows concurrently
 - All outbound HTTP traffic is now handled by one shared `aiohttp` transport
 
 ## Features
@@ -85,7 +85,7 @@ Use `config/output_config.env` to control whether each file is written and what 
 ## Usage
 
 ```bash
-.venv\Scripts\python src/main.py
+.venv\Scripts\python -m src.main
 ```
 
 The script writes output files under `output/YYYYMMDD_HHMM/`.
@@ -106,6 +106,8 @@ ANYPOINT_HTTP_MAX_RETRIES=4
 
 - `src/main.py`
   - loads configuration, creates the shared transport, authenticates, and starts both exports
+- `src/export_common.py`
+  - shares export setup, auth headers, owned client handling, and output writing
 - `src/auth/client.py`
   - retrieves and caches the OAuth access token
 - `src/api/accounts.py`
