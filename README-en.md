@@ -2,127 +2,115 @@
 
 ![](./mulesoft.jpg)
 
-A Python program that uses MuleSoft's Anypoint Platform API to retrieve application information. It efficiently retrieves information from API Manager and CloudHub asynchronously and outputs it in JSON format.
+A Python script that uses MuleSoft Anypoint Platform APIs to fetch environment-level data from API Manager and Runtime Manager, then writes the results as JSON files.
 
 ## Overview
 
-This tool is useful in the following cases:
+- `api_manager.json`: API Manager list and detail data
+- `cloudhub.json`: Runtime Manager application data
+- `src/main.py` starts both export flows concurrently
 
-- When you want to retrieve API information from Anypoint Platform in bulk
-- When you want to retrieve CloudHub application information across environments
-- When you want to save the retrieved information as structured JSON
+The codebase is intentionally simple. Each output has one module, and each module follows the same readable flow: `fetch API data -> transform required fields -> write JSON`.
 
 ## Features
 
-### API Manager Information Retrieval
+### API Manager
 
-- Application list
-- Policy settings
-- Contracts information
-- Alert information
-- Tier information
+- Fetch API list
+- Fetch policies
+- Fetch contracts
+- Fetch alerts
+- Fetch tiers
+- Transform data for JSON output
 
-### CloudHub Information Retrieval
+### Runtime Manager
 
-- Application list
-- Deployment information
-- Status information
-
-### Other Features
-
-- Fast information retrieval using asynchronous processing
-- Flexible output settings
-- Error handling
+- Fetch application list
+- Transform data for JSON output
 
 ## Requirements
 
-- Python 3.8 or higher
+- Python 3.8+
 - Required libraries
-  - requests
-  - aiohttp
-  - python-dotenv
+  - `requests`
+  - `aiohttp`
+  - `python-dotenv`
+  - `pytest`
+  - `pytest-asyncio`
 
-## Installation
+## Setup
 
 ```bash
-# 1. Clone the repository
 git clone https://github.com/big-mon/mulesoft-anypoint-platform.git
 cd mulesoft-anypoint-platform
-
-# 2. Install dependencies
 pip install -r requirements.txt
-
-# 3. Set up environment variables
 cp .env.example .env
 ```
 
-Edit the `.env` file and set the following information:
+Set the following values in `.env`:
 
-- `ANYPOINT_CLIENT_ID`: Anypoint Platform Client ID
-- `ANYPOINT_CLIENT_SECRET`: Anypoint Platform Client Secret
-- `ANYPOINT_ORGANIZATION_ID`: Organization ID
-- `ANYPOINT_BASE_URL`: Anypoint Platform Base URL (optional)
+- `ANYPOINT_CLIENT_ID`
+- `ANYPOINT_CLIENT_SECRET`
+- `ANYPOINT_ORGANIZATION_ID`
+- `ANYPOINT_BASE_URL`
 
-4. Output Configuration
+If `ANYPOINT_BASE_URL` is omitted, the default is `https://anypoint.mulesoft.com`.
 
-You can configure whether to output various information and output file names in the `output_config.env` file.
+## Output Configuration
+
+Use `config/output_config.env` to control whether each file is written and what filename is used.
+
+- `API_MANAGER_ENABLED`
+- `API_MANAGER_FILENAME`
+- `CLOUDHUB_ENABLED`
+- `CLOUDHUB_FILENAME`
 
 ## Usage
-
-### Basic Usage
 
 ```bash
 python src/main.py
 ```
 
-### Output Files
+The script writes output files under `output/YYYYMMDD_HHMM/`.
 
-When executed, the following files will be output to the `output/YYYYMMDD_HHMM/` directory:
+- `api_manager.json`
+- `cloudhub.json`
 
-- `api_manager.json`: API Manager information
-- `cloudhub.json`: CloudHub information
+## Structure
 
-## Troubleshooting
+- `src/main.py`
+  - Authentication, environment lookup, output preparation, and task startup
+- `src/api_manager_export.py`
+  - API Manager fetch, transform, detail enrichment, and output
+- `src/cloudhub_export.py`
+  - Runtime Manager fetch, transform, and output
+- `src/api/accounts.py`
+  - Organization environment lookup
+- `src/auth/client.py`
+  - OAuth token retrieval
+- `src/utils/file_output.py`
+  - Output directory creation and JSON writing
+- `src/utils/output_config.py`
+  - Output configuration loading
 
-### Common Errors
+See [docs/structure.md](docs/structure.md) for more detail.
 
-1. Authentication Error
-
-   - Check if Client ID, Client Secret, and Organization ID are correctly set
-
-2. Network Error
-   - Verify that you can connect to Anypoint Platform
-   - If proxy settings are required, set them in environment variables
-
-## Developer Information
-
-### Testing
+## Testing
 
 ```bash
 python -m pytest tests/
 ```
 
-### Coding Standards
+## Troubleshooting
 
-- Compliant with PEP 8
-- Type hints recommended
-- Google style for docstrings
+### Authentication errors
 
-## Contributing
+- Verify the credentials in `.env`.
 
-1. Fork this repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'add: some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Create a Pull Request
+### Network errors
 
-## Bug Reports & Feature Requests
-
-If you find a bug or have a feature request, please register it in GitHub Issues.
-
-## Change Log
-
-For detailed update history, please refer to [CHANGELOG.md](CHANGELOG.md).
+- Verify connectivity to Anypoint Platform.
+- If your environment requires a proxy, configure it with environment variables.
 
 ## License
 
