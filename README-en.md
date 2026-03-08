@@ -62,6 +62,9 @@ Edit the `.env` file and set the following information:
 - `ANYPOINT_CLIENT_SECRET`: Anypoint Platform Client Secret
 - `ANYPOINT_ORGANIZATION_ID`: Organization ID
 - `ANYPOINT_BASE_URL`: Anypoint Platform Base URL (optional)
+- `ANYPOINT_PROXY_URL`: Shared proxy URL for all requests (optional)
+- `ANYPOINT_HTTP_PROXY`: HTTP proxy override (optional)
+- `ANYPOINT_HTTPS_PROXY`: HTTPS proxy override (optional)
 
 4. Output Configuration
 
@@ -92,7 +95,7 @@ When executed, the following files will be output to the `output/YYYYMMDD_HHMM/`
 
 2. Network Error
    - Verify that you can connect to Anypoint Platform
-   - If proxy settings are required, set them in environment variables
+   - If proxy settings are required, set `ANYPOINT_PROXY_URL` or the scheme-specific proxy variables
 
 ## Developer Information
 

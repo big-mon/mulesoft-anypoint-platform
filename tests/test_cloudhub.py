@@ -1,14 +1,16 @@
-"""CloudHubClientのテスト"""
+"""Tests for CloudHubClient."""
 
-import pytest
 import aiohttp
-from unittest.mock import Mock, patch, AsyncMock
+import pytest
+from unittest.mock import patch
+
 from src.api.cloudhub import CloudHubClient
 
 
 class MockResponse:
-    def __init__(self):
-        self.status = 200
+    def __init__(self, payload, status=200):
+        self._payload = payload
+        self.status = status
 
     async def __aenter__(self):
         return self
@@ -17,7 +19,7 @@ class MockResponse:
         pass
 
     async def json(self):
-        return self.mock_data
+        return self._payload
 
     def raise_for_status(self):
         if self.status >= 400:
@@ -25,14 +27,18 @@ class MockResponse:
 
 
 @pytest.fixture
-def cloudhub_client():
-    """CloudHubClientのフィクスチャ"""
+def cloudhub_client(monkeypatch):
+    """Build a CloudHub client without proxy settings."""
+    monkeypatch.setenv("ANYPOINT_BASE_URL", "https://anypoint.mulesoft.com")
+    monkeypatch.delenv("ANYPOINT_PROXY_URL", raising=False)
+    monkeypatch.delenv("ANYPOINT_HTTP_PROXY", raising=False)
+    monkeypatch.delenv("ANYPOINT_HTTPS_PROXY", raising=False)
     token = "test_token"
     environments = [
         {
             "name": "test_env",
             "org_id": "test_org",
-            "env_id": "test_env_id"
+            "env_id": "test_env_id",
         }
     ]
     return CloudHubClient(token, environments)
@@ -40,7 +46,7 @@ def cloudhub_client():
 
 @pytest.mark.asyncio
 async def test_get_applications(cloudhub_client):
-    """アプリケーション取得のテスト"""
+    """Applications should be fetched without a proxy by default."""
     mock_data = [
         {
             "id": "test_app_id",
@@ -51,14 +57,13 @@ async def test_get_applications(cloudhub_client):
             "muleVersion": "4.4.0",
             "properties": {
                 "env": "test"
-            }
+            },
         }
     ]
 
     def mock_get(*args, **kwargs):
-        mock_response = MockResponse()
-        mock_response.mock_data = mock_data
-        return mock_response
+        assert kwargs["proxy"] is None
+        return MockResponse(mock_data)
 
     with patch("aiohttp.ClientSession.get", side_effect=mock_get):
         applications = await cloudhub_client.get_applications()
@@ -73,13 +78,32 @@ async def test_get_applications(cloudhub_client):
 
 @pytest.mark.asyncio
 async def test_get_applications_error(cloudhub_client):
-    """アプリケーション取得のエラーテスト"""
+    """Client errors should be raised from the async request path."""
+
     def mock_get(*args, **kwargs):
-        mock_response = MockResponse()
-        mock_response.status = 500
-        mock_response.mock_data = {"error": "Internal Server Error"}
-        return mock_response
+        return MockResponse({"error": "Internal Server Error"}, status=500)
 
     with patch("aiohttp.ClientSession.get", side_effect=mock_get):
         with pytest.raises(aiohttp.ClientResponseError):
             await cloudhub_client.get_applications()
+
+
+@pytest.mark.asyncio
+async def test_get_applications_uses_shared_proxy(monkeypatch):
+    """Configured shared proxy should be passed to CloudHub aiohttp requests."""
+    monkeypatch.setenv("ANYPOINT_BASE_URL", "https://anypoint.mulesoft.com")
+    monkeypatch.setenv("ANYPOINT_PROXY_URL", "http://proxy.local:8080")
+    monkeypatch.delenv("ANYPOINT_HTTP_PROXY", raising=False)
+    monkeypatch.delenv("ANYPOINT_HTTPS_PROXY", raising=False)
+    client = CloudHubClient(
+        "test_token",
+        [{"name": "test_env", "org_id": "test_org", "env_id": "test_env_id"}],
+    )
+
+    def mock_get(*args, **kwargs):
+        assert kwargs["proxy"] == "http://proxy.local:8080"
+        return MockResponse([])
+
+    with patch("aiohttp.ClientSession.get", side_effect=mock_get):
+        applications = await client.get_applications()
+        assert len(applications) == 1

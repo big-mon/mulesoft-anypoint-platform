@@ -5,6 +5,11 @@ import os
 import requests
 from dotenv import load_dotenv
 
+try:
+    from utils.proxy import ProxyConfig
+except ImportError:
+    from src.utils.proxy import ProxyConfig
+
 
 class AuthClient:
     """認証クライアント(Access Management API)"""
@@ -16,6 +21,7 @@ class AuthClient:
         self.__client_secret = os.getenv('ANYPOINT_CLIENT_SECRET')
         self._base_url = os.getenv('ANYPOINT_BASE_URL')
         self._session = requests.Session()
+        self._session.proxies.update(ProxyConfig().get_requests_proxies())
 
     def get_access_token(self):
         """Connected Appを使用してアクセストークンを取得"""
