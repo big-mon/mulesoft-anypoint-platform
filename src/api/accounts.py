@@ -1,37 +1,29 @@
 #!/usr/bin/env python3
-"""Accounts API"""
+"""Accounts API client."""
 
-import os
-import requests
-from dotenv import load_dotenv
-
-try:
-    from utils.proxy import ProxyConfig
-except ImportError:
-    from src.utils.proxy import ProxyConfig
+from src.utils.config import Config
 
 
 class AccountsAPI:
-    """Accounts APIクライアント"""
+    """Fetch organization metadata from the Accounts API."""
 
-    def __init__(self, token):
-        load_dotenv()
-        self._base_url = os.getenv('ANYPOINT_BASE_URL')
-        self._organization_id = os.getenv('ANYPOINT_ORGANIZATION_ID')
-        self.__session = requests.Session()
-        self.__session.trust_env = False
-        self.__session.headers.update({
-            'Authorization': f'Bearer {token}'
-        })
-        self.__session.proxies.update(ProxyConfig().get_requests_proxies())
+    def __init__(self, token, http_client, config=None):
+        self._http_client = http_client
+        self._config = config or Config()
+        self._headers = {"Authorization": f"Bearer {token}"}
 
-    def get_organization_environments(self):
-        """組織内の環境の取得"""
-        url = f"{self._base_url}/accounts/api/organizations/{self._organization_id}/environments"
-        payload = {
-          'extended': False,
-          'resolveTheme': False
+    async def get_organization_environments(self):
+        """Return the environments configured for the organization."""
+        url = (
+            f"{self._config.get_base_url()}/accounts/api/organizations/"
+            f"{self._config.get_organization_id()}/environments"
+        )
+        params = {
+            "extended": "false",
+            "resolveTheme": "false",
         }
-        response = self.__session.get(url, data=payload)
-        response.raise_for_status()
-        return response.json()
+        return await self._http_client.get_json(
+            url,
+            headers=self._headers,
+            params=params,
+        )

@@ -2,36 +2,50 @@
 """Export Runtime Manager information."""
 
 import asyncio
-import os
 
-import aiohttp
-from dotenv import load_dotenv
-
-try:
-    from utils.proxy import ProxyConfig
-except ImportError:
-    from src.utils.proxy import ProxyConfig
+from src.export_common import export_runtime, write_export_output
 
 
-load_dotenv()
-REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10, sock_read=30)
-
-
-async def export_cloudhub_info(access_token, environments, file_output, output_config):
+async def export_cloudhub_info(
+    access_token,
+    environments,
+    file_output,
+    output_config,
+    http_client=None,
+    config=None,
+):
     """Fetch, transform, and optionally output Runtime Manager information."""
-    base_url = os.getenv("ANYPOINT_BASE_URL", "https://anypoint.mulesoft.com")
-    headers = {"Authorization": f"Bearer {access_token}"}
-    proxy_config = ProxyConfig()
+    async with export_runtime(
+        access_token,
+        http_client=http_client,
+        config=config,
+    ) as runtime:
+        _, headers, base_url, active_http_client = runtime
+        return await _export_cloudhub_info(
+            active_http_client,
+            base_url,
+            headers,
+            environments,
+            file_output,
+            output_config,
+        )
 
+
+async def _export_cloudhub_info(
+    http_client,
+    base_url,
+    headers,
+    environments,
+    file_output,
+    output_config,
+):
     try:
-        async with aiohttp.ClientSession(headers=headers, timeout=REQUEST_TIMEOUT) as session:
-            applications = await _fetch_applications(
-                session,
-                base_url,
-                environments,
-                proxy_config,
-            )
-
+        applications = await _fetch_applications(
+            http_client,
+            base_url,
+            headers,
+            environments,
+        )
         formatted_applications = _format_applications(applications)
         _output_cloudhub_info(formatted_applications, file_output, output_config)
         print("Runtime Manager information exported successfully.")
@@ -41,28 +55,30 @@ async def export_cloudhub_info(access_token, environments, file_output, output_c
         raise
 
 
-async def _fetch_applications(session, base_url, environments, proxy_config):
+async def _fetch_applications(http_client, base_url, headers, environments):
     """Fetch all environments and fail fast if any request fails."""
     tasks = [
-        _fetch_environment_applications(session, base_url, environment, proxy_config)
+        _fetch_environment_applications(http_client, base_url, headers, environment)
         for environment in environments
     ]
     return await asyncio.gather(*tasks)
 
 
-async def _fetch_environment_applications(session, base_url, environment, proxy_config):
-    url = f"{base_url}/cloudhub/api/v2/applications"
-    headers = {"X-ANYPNT-ENV-ID": environment["env_id"]}
-    request_kwargs = proxy_config.get_aiohttp_request_kwargs(url)
-
-    async with session.get(url, headers=headers, **request_kwargs) as response:
-        response.raise_for_status()
-        return {
-            "env_name": environment["name"],
-            "org_id": environment["org_id"],
-            "env_id": environment["env_id"],
-            "apis": await response.json(),
-        }
+async def _fetch_environment_applications(http_client, base_url, headers, environment):
+    request_headers = {
+        **headers,
+        "X-ANYPNT-ENV-ID": environment["env_id"],
+    }
+    payload = await http_client.get_json(
+        f"{base_url}/cloudhub/api/v2/applications",
+        headers=request_headers,
+    )
+    return {
+        "env_name": environment["name"],
+        "org_id": environment["org_id"],
+        "env_id": environment["env_id"],
+        "apis": payload,
+    }
 
 
 def _format_applications(applications):
@@ -78,7 +94,10 @@ def _format_applications(applications):
 
 
 def _output_cloudhub_info(applications, file_output, output_config):
-    if file_output and output_config.get_output_setting("cloudhub"):
-        filename = output_config.get_output_filename("cloudhub")
-        file_path = file_output.output_json(applications, filename)
-        print(f"Runtime Manager output saved to: {file_path}")
+    write_export_output(
+        "cloudhub",
+        "Runtime Manager",
+        applications,
+        file_output,
+        output_config,
+    )
