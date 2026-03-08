@@ -51,6 +51,7 @@ async def test_export_api_manager_info_formats_and_outputs(monkeypatch):
     file_output, output_config = _build_output_mocks()
 
     def mock_get(self, url, **kwargs):
+        assert kwargs["proxy"] is None
         if url.endswith("/apis"):
             return MockResponse(
                 {
@@ -294,3 +295,32 @@ async def test_export_api_manager_info_returns_none_on_http_error(monkeypatch):
 
     assert result is None
     file_output.output_json.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_export_api_manager_info_uses_configured_https_proxy(monkeypatch):
+    """It passes the configured HTTPS proxy to API Manager requests."""
+    monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
+    monkeypatch.setenv("ANYPOINT_HTTPS_PROXY", "http://proxy.local:8443")
+    monkeypatch.delenv("ANYPOINT_PROXY_URL", raising=False)
+    monkeypatch.delenv("ANYPOINT_HTTP_PROXY", raising=False)
+    file_output, output_config = _build_output_mocks()
+
+    def mock_get(self, url, **kwargs):
+        assert kwargs["proxy"] == "http://proxy.local:8443"
+        if url.endswith("/apis"):
+            return MockResponse({"assets": []})
+        raise AssertionError(f"Unexpected URL: {url}")
+
+    monkeypatch.setattr("aiohttp.ClientSession.get", mock_get)
+
+    result = await export_api_manager_info(
+        "token",
+        [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
+        file_output,
+        output_config,
+    )
+
+    assert result == [
+        {"env_name": "Sandbox", "org_id": "org-1", "env_id": "env-1", "apis": []}
+    ]

@@ -5,6 +5,11 @@ import os
 import requests
 from dotenv import load_dotenv
 
+try:
+    from utils.proxy import ProxyConfig
+except ImportError:
+    from src.utils.proxy import ProxyConfig
+
 
 class AccountsAPI:
     """Accounts APIクライアント"""
@@ -14,9 +19,11 @@ class AccountsAPI:
         self._base_url = os.getenv('ANYPOINT_BASE_URL')
         self._organization_id = os.getenv('ANYPOINT_ORGANIZATION_ID')
         self.__session = requests.Session()
+        self.__session.trust_env = False
         self.__session.headers.update({
             'Authorization': f'Bearer {token}'
         })
+        self.__session.proxies.update(ProxyConfig().get_requests_proxies())
 
     def get_organization_environments(self):
         """組織内の環境の取得"""

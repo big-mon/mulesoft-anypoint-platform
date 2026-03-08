@@ -7,6 +7,11 @@ import os
 import aiohttp
 from dotenv import load_dotenv
 
+try:
+    from utils.proxy import ProxyConfig
+except ImportError:
+    from src.utils.proxy import ProxyConfig
+
 
 load_dotenv()
 REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10, sock_read=30)
@@ -16,10 +21,16 @@ async def export_cloudhub_info(access_token, environments, file_output, output_c
     """Fetch, transform, and optionally output Runtime Manager information."""
     base_url = os.getenv("ANYPOINT_BASE_URL", "https://anypoint.mulesoft.com")
     headers = {"Authorization": f"Bearer {access_token}"}
+    proxy_config = ProxyConfig()
 
     try:
         async with aiohttp.ClientSession(headers=headers, timeout=REQUEST_TIMEOUT) as session:
-            applications = await _fetch_applications(session, base_url, environments)
+            applications = await _fetch_applications(
+                session,
+                base_url,
+                environments,
+                proxy_config,
+            )
 
         formatted_applications = _format_applications(applications)
         _output_cloudhub_info(formatted_applications, file_output, output_config)
@@ -30,20 +41,21 @@ async def export_cloudhub_info(access_token, environments, file_output, output_c
         raise
 
 
-async def _fetch_applications(session, base_url, environments):
+async def _fetch_applications(session, base_url, environments, proxy_config):
     """Fetch all environments and fail fast if any request fails."""
     tasks = [
-        _fetch_environment_applications(session, base_url, environment)
+        _fetch_environment_applications(session, base_url, environment, proxy_config)
         for environment in environments
     ]
     return await asyncio.gather(*tasks)
 
 
-async def _fetch_environment_applications(session, base_url, environment):
+async def _fetch_environment_applications(session, base_url, environment, proxy_config):
     url = f"{base_url}/cloudhub/api/v2/applications"
     headers = {"X-ANYPNT-ENV-ID": environment["env_id"]}
+    request_kwargs = proxy_config.get_aiohttp_request_kwargs(url)
 
-    async with session.get(url, headers=headers) as response:
+    async with session.get(url, headers=headers, **request_kwargs) as response:
         response.raise_for_status()
         return {
             "env_name": environment["name"],

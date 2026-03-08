@@ -49,10 +49,13 @@ cp .env.example .env
 
 Set the following values in `.env`:
 
-- `ANYPOINT_CLIENT_ID`
-- `ANYPOINT_CLIENT_SECRET`
-- `ANYPOINT_ORGANIZATION_ID`
-- `ANYPOINT_BASE_URL`
+- `ANYPOINT_CLIENT_ID`: Anypoint Platform Client ID
+- `ANYPOINT_CLIENT_SECRET`: Anypoint Platform Client Secret
+- `ANYPOINT_ORGANIZATION_ID`: Organization ID
+- `ANYPOINT_BASE_URL`: Anypoint Platform Base URL (optional)
+- `ANYPOINT_PROXY_URL`: Shared proxy URL for all requests (optional)
+- `ANYPOINT_HTTP_PROXY`: HTTP proxy override (optional)
+- `ANYPOINT_HTTPS_PROXY`: HTTPS proxy override (optional)
 
 If `ANYPOINT_BASE_URL` is omitted, the default is `https://anypoint.mulesoft.com`.
 
@@ -110,7 +113,7 @@ python -m pytest tests/
 ### Network errors
 
 - Verify connectivity to Anypoint Platform.
-- If your environment requires a proxy, configure it with environment variables.
+- If your environment requires a proxy, set `ANYPOINT_PROXY_URL` or the scheme-specific proxy variables.
 
 ## License
 

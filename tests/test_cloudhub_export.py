@@ -51,6 +51,7 @@ async def test_export_cloudhub_info_formats_and_outputs(monkeypatch):
     file_output, output_config = _build_output_mocks()
 
     def mock_get(self, url, **kwargs):
+        assert kwargs["proxy"] is None
         env_id = kwargs["headers"]["X-ANYPNT-ENV-ID"]
         payload = [{"id": f"app-{env_id}", "status": "STARTED"}]
         return MockResponse(payload)
@@ -127,3 +128,28 @@ async def test_export_cloudhub_info_raises_on_http_error(monkeypatch):
         )
 
     file_output.output_json.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_export_cloudhub_info_uses_configured_shared_proxy(monkeypatch):
+    """It passes the configured shared proxy to Runtime Manager requests."""
+    monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
+    monkeypatch.setenv("ANYPOINT_PROXY_URL", "http://proxy.local:8080")
+    monkeypatch.delenv("ANYPOINT_HTTP_PROXY", raising=False)
+    monkeypatch.delenv("ANYPOINT_HTTPS_PROXY", raising=False)
+    file_output, output_config = _build_output_mocks()
+
+    def mock_get(self, url, **kwargs):
+        assert kwargs["proxy"] == "http://proxy.local:8080"
+        return MockResponse([{"id": "app-1", "status": "STARTED"}])
+
+    monkeypatch.setattr("aiohttp.ClientSession.get", mock_get)
+
+    result = await export_cloudhub_info(
+        "token",
+        [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
+        file_output,
+        output_config,
+    )
+
+    assert result[0]["apis"] == [{"id": "app-1", "status": "STARTED"}]
