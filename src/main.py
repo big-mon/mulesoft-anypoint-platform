@@ -17,7 +17,7 @@ async def main():
     """Main entry point."""
     config = Config()
     if not config.is_valid:
-        return
+        return 1
 
     output_config = OutputConfig()
     file_output = FileOutput()
@@ -31,7 +31,7 @@ async def main():
             print("Access token retrieved successfully.")
         except Exception as exc:
             print(f"Failed to retrieve access token: {exc}")
-            return
+            return 1
 
         try:
             accounts_api = AccountsAPI(access_token, http_client, config=config)
@@ -39,7 +39,7 @@ async def main():
             print("Organization environments retrieved successfully.")
         except Exception as exc:
             print(f"Failed to retrieve organization environments: {exc}")
-            return
+            return 1
 
         formatted_environments = [
             {
@@ -71,10 +71,11 @@ async def main():
             )
         except Exception as exc:
             print(f"Failed to export information: {exc}")
-            return
+            return 1
 
     print("Completed.")
+    return 0
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    raise SystemExit(asyncio.run(main()))

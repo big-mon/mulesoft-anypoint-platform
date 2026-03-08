@@ -75,11 +75,15 @@ class Config:
 
     def get_organization_id(self):
         """Return the configured organization ID."""
-        return self._organization_id
+        if self._organization_id is None:
+            return None
+        return self._organization_id.strip()
 
     def get_base_url(self):
         """Return the configured Anypoint base URL."""
-        return self._base_url
+        if self._base_url is None:
+            return None
+        return self._base_url.rstrip("/")
 
     def get_http_max_concurrency(self):
         """Return the maximum concurrent outbound requests."""

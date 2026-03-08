@@ -13,17 +13,28 @@ from src.utils.http_client import AsyncHTTPClient
 class MockResponse:
     """Async response stub used by MockSession."""
 
-    def __init__(self, payload, status=200, headers=None, tracker=None, wait_event=None):
+    def __init__(
+        self,
+        payload,
+        status=200,
+        headers=None,
+        tracker=None,
+        wait_event=None,
+        entry_event=None,
+    ):
         self._payload = payload
         self.status = status
         self.headers = headers or {}
         self._tracker = tracker
         self._wait_event = wait_event
+        self._entry_event = entry_event
 
     async def __aenter__(self):
         if self._tracker is not None:
             self._tracker["current"] += 1
             self._tracker["max"] = max(self._tracker["max"], self._tracker["current"])
+            if self._entry_event is not None and self._tracker["max"] >= 2:
+                self._entry_event.set()
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
@@ -182,11 +193,22 @@ async def test_http_client_limits_max_concurrency(monkeypatch):
         ANYPOINT_HTTP_MIN_INTERVAL_MS="0",
     )
     tracker = {"current": 0, "max": 0}
+    entry_event = asyncio.Event()
     release_event = asyncio.Event()
     session = MockSession(
         [
-            MockResponse({"id": 1}, tracker=tracker, wait_event=release_event),
-            MockResponse({"id": 2}, tracker=tracker, wait_event=release_event),
+            MockResponse(
+                {"id": 1},
+                tracker=tracker,
+                wait_event=release_event,
+                entry_event=entry_event,
+            ),
+            MockResponse(
+                {"id": 2},
+                tracker=tracker,
+                wait_event=release_event,
+                entry_event=entry_event,
+            ),
             MockResponse({"id": 3}, tracker=tracker, wait_event=release_event),
         ]
     )
@@ -196,8 +218,7 @@ async def test_http_client_limits_max_concurrency(monkeypatch):
         asyncio.create_task(client.get_json(f"https://example.com/{index}"))
         for index in range(3)
     ]
-    await asyncio.sleep(0)
-    await asyncio.sleep(0)
+    await entry_event.wait()
 
     assert tracker["max"] == 2
     assert len(session.calls) == 2

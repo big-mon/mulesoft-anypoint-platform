@@ -35,11 +35,24 @@ A Python tool that fetches environment-level data from MuleSoft Anypoint Platfor
 
 ## Setup
 
+### Windows PowerShell
+
+```powershell
+git clone https://github.com/big-mon/mulesoft-anypoint-platform.git
+cd mulesoft-anypoint-platform
+python -m venv .venv
+.\.venv\Scripts\python -m pip install -r requirements.txt
+Copy-Item .env.example .env
+```
+
+### Unix / Bash
+
 ```bash
 git clone https://github.com/big-mon/mulesoft-anypoint-platform.git
 cd mulesoft-anypoint-platform
 python -m venv .venv
-.venv\Scripts\python -m pip install -r requirements.txt
+. .venv/bin/activate
+python -m pip install -r requirements.txt
 cp .env.example .env
 ```
 
@@ -84,8 +97,16 @@ Use `config/output_config.env` to control whether each file is written and what 
 
 ## Usage
 
+### Windows PowerShell
+
+```powershell
+.\.venv\Scripts\python -m src.main
+```
+
+### Unix / Bash
+
 ```bash
-.venv\Scripts\python -m src.main
+.venv/bin/python -m src.main
 ```
 
 The script writes output files under `output/YYYYMMDD_HHMM/`.
@@ -127,8 +148,16 @@ See [docs/structure.md](docs/structure.md) for more detail.
 
 ## Testing
 
+### Windows PowerShell
+
+```powershell
+.\.venv\Scripts\python -m pytest tests
+```
+
+### Unix / Bash
+
 ```bash
-.venv\Scripts\python -m pytest tests
+.venv/bin/python -m pytest tests
 ```
 
 ## Troubleshooting

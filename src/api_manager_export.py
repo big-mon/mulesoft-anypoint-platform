@@ -32,7 +32,7 @@ async def export_api_manager_info(
             )
     except Exception as exc:
         print(f"Failed to export API Manager information: {exc}")
-        return None
+        raise
 
 
 async def _export_api_manager_info(

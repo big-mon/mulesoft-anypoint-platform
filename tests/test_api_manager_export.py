@@ -1,5 +1,6 @@
 """Tests for API Manager export flow."""
 
+import aiohttp
 import pytest
 
 from src.api_manager_export import export_api_manager_info
@@ -11,6 +12,10 @@ async def test_export_api_manager_info_formats_and_outputs(monkeypatch):
     """It fetches, enriches, and outputs API Manager data."""
     monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
     file_output, output_config = build_output_mocks(filename="api_manager.json")
+    expected_base_url = (
+        "https://example.com/apimanager/api/v1/organizations/org-1/"
+        "environments/env-1/apis/api-1"
+    )
 
     def responder(url, **kwargs):
         if url.endswith("/apis"):
@@ -32,13 +37,21 @@ async def test_export_api_manager_info_formats_and_outputs(monkeypatch):
                     }
                 ]
             }
-        if url.endswith("/policies"):
+        if url == f"{expected_base_url}/policies":
+            assert kwargs["headers"] == {"Authorization": "Bearer token"}
+            assert kwargs["params"] is None
             return {"policies": [{"id": "policy-1"}]}
-        if url.endswith("/contracts"):
+        if url == f"{expected_base_url}/contracts":
+            assert kwargs["headers"] == {"Authorization": "Bearer token"}
+            assert kwargs["params"] is None
             return {"contracts": [{"id": "contract-1"}]}
-        if url.endswith("/alerts"):
+        if url == f"{expected_base_url}/alerts":
+            assert kwargs["headers"] == {"Authorization": "Bearer token"}
+            assert kwargs["params"] is None
             return [{"id": "alert-1"}]
-        if url.endswith("/tiers"):
+        if url == f"{expected_base_url}/tiers":
+            assert kwargs["headers"] == {"Authorization": "Bearer token"}
+            assert kwargs["params"] is None
             return {"tiers": [{"id": "tier-1"}]}
         raise AssertionError(f"Unexpected URL: {url}")
 
@@ -221,20 +234,20 @@ async def test_export_api_manager_info_skips_output_when_disabled(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_export_api_manager_info_returns_none_on_http_error(monkeypatch):
-    """It returns None and does not write output when API Manager calls fail."""
+async def test_export_api_manager_info_raises_on_http_error(monkeypatch):
+    """It preserves API failures for callers and does not write output."""
     monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
     file_output, output_config = build_output_mocks(filename="api_manager.json")
 
-    result = await export_api_manager_info(
-        "token",
-        [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
-        file_output,
-        output_config,
-        http_client=FakeHTTPClient(lambda url, **kwargs: build_http_error(503)),
-    )
+    with pytest.raises(aiohttp.ClientResponseError):
+        await export_api_manager_info(
+            "token",
+            [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
+            file_output,
+            output_config,
+            http_client=FakeHTTPClient(lambda url, **kwargs: build_http_error(503)),
+        )
 
-    assert result is None
     file_output.output_json.assert_not_called()
 
 

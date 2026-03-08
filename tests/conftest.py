@@ -1,5 +1,6 @@
 """Shared test helpers."""
 
+import asyncio
 from unittest.mock import Mock
 
 import aiohttp
@@ -15,7 +16,7 @@ class FakeHTTPClient:
         self.calls = []
 
     async def get_json(self, url, *, headers=None, params=None):
-        return self._handle_call(
+        return await self._handle_call(
             "GET",
             url,
             headers=headers,
@@ -23,14 +24,14 @@ class FakeHTTPClient:
         )
 
     async def post_json(self, url, *, headers=None, data=None):
-        return self._handle_call(
+        return await self._handle_call(
             "POST",
             url,
             headers=headers,
             data=data,
         )
 
-    def _handle_call(self, method, url, *, headers=None, params=None, data=None):
+    async def _handle_call(self, method, url, *, headers=None, params=None, data=None):
         self.calls.append(
             {
                 "method": method,
@@ -48,6 +49,8 @@ class FakeHTTPClient:
         if responder is None:
             raise AssertionError(f"No responder configured for {method} {url}")
         result = responder(url, headers=headers, params=params, data=data)
+        if asyncio.iscoroutine(result):
+            result = await result
         if isinstance(result, Exception):
             raise result
         return result
