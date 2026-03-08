@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 
 load_dotenv()
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10, sock_read=30)
 
 
 async def export_api_manager_info(access_token, environments, file_output, output_config):
@@ -17,7 +18,7 @@ async def export_api_manager_info(access_token, environments, file_output, outpu
     headers = {"Authorization": f"Bearer {access_token}"}
 
     try:
-        async with aiohttp.ClientSession(headers=headers) as session:
+        async with aiohttp.ClientSession(headers=headers, timeout=REQUEST_TIMEOUT) as session:
             applications = await _fetch_applications(session, base_url, environments)
             formatted_applications = _format_applications(applications)
             detail_map = await _fetch_detail_map(session, base_url, formatted_applications)
@@ -70,11 +71,11 @@ def _format_applications(applications):
                 deployment = api.get("deployment") or {}
                 formatted_application["apis"].append(
                     {
-                        "id": api["id"],
-                        "exchangeAssetName": asset["exchangeAssetName"],
-                        "instanceLabel": api["instanceLabel"],
-                        "activeContractsCount": api["activeContractsCount"],
-                        "status": api["status"],
+                        "id": api.get("id"),
+                        "exchangeAssetName": asset.get("exchangeAssetName", ""),
+                        "instanceLabel": api.get("instanceLabel", ""),
+                        "activeContractsCount": api.get("activeContractsCount", 0),
+                        "status": api.get("status"),
                         "deployment_applicationId": deployment.get("applicationId"),
                     }
                 )
@@ -88,13 +89,16 @@ async def _fetch_detail_map(session, base_url, applications):
     tasks = []
     for environment in applications:
         for api in environment["apis"]:
+            api_id = api.get("id")
+            if api_id is None:
+                continue
             tasks.append(
                 _fetch_api_details(
                     session,
                     base_url,
                     environment["org_id"],
                     environment["env_id"],
-                    api["id"],
+                    api_id,
                 )
             )
 
@@ -150,8 +154,9 @@ async def _fetch_json(session, url):
 def _apply_detail_map(applications, detail_map):
     for environment in applications:
         for api in environment["apis"]:
+            api_id = api.get("id")
             detail = detail_map.get(
-                (environment["org_id"], environment["env_id"], str(api["id"]))
+                (environment["org_id"], environment["env_id"], str(api_id))
             )
             api["policies"] = detail["policies"] if detail else []
             api["contracts"] = detail["contracts"] if detail else []

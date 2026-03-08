@@ -26,7 +26,13 @@ class MockResponse:
 
     def raise_for_status(self):
         if self.status >= 400:
-            raise aiohttp.ClientResponseError(None, None, status=self.status)
+            request_info = Mock()
+            request_info.real_url = "https://example.com"
+            raise aiohttp.ClientResponseError(
+                request_info=request_info,
+                history=(),
+                status=self.status,
+            )
 
 
 def _build_output_mocks(enabled=True):
@@ -98,4 +104,26 @@ async def test_export_cloudhub_info_skips_output_when_disabled(monkeypatch):
     )
 
     assert result[0]["apis"] == [{"id": "app-1", "status": "STARTED"}]
+    file_output.output_json.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_export_cloudhub_info_raises_on_http_error(monkeypatch):
+    """It preserves fail-fast behavior when Runtime Manager calls fail."""
+    monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
+    file_output, output_config = _build_output_mocks()
+
+    def mock_get(self, url, **kwargs):
+        return MockResponse({"error": "Internal Server Error"}, status=500)
+
+    monkeypatch.setattr("aiohttp.ClientSession.get", mock_get)
+
+    with pytest.raises(aiohttp.ClientResponseError):
+        await export_cloudhub_info(
+            "token",
+            [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
+            file_output,
+            output_config,
+        )
+
     file_output.output_json.assert_not_called()

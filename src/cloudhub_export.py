@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 
 
 load_dotenv()
+REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10, sock_read=30)
 
 
 async def export_cloudhub_info(access_token, environments, file_output, output_config):
@@ -17,7 +18,7 @@ async def export_cloudhub_info(access_token, environments, file_output, output_c
     headers = {"Authorization": f"Bearer {access_token}"}
 
     try:
-        async with aiohttp.ClientSession(headers=headers) as session:
+        async with aiohttp.ClientSession(headers=headers, timeout=REQUEST_TIMEOUT) as session:
             applications = await _fetch_applications(session, base_url, environments)
 
         formatted_applications = _format_applications(applications)
@@ -30,6 +31,7 @@ async def export_cloudhub_info(access_token, environments, file_output, output_c
 
 
 async def _fetch_applications(session, base_url, environments):
+    """Fetch all environments and fail fast if any request fails."""
     tasks = [
         _fetch_environment_applications(session, base_url, environment)
         for environment in environments

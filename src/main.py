@@ -46,7 +46,7 @@ async def main():
             "org_id": environment["organizationId"],
             "env_id": environment["id"],
         }
-        for environment in environments["data"]
+        for environment in environments.get("data", [])
     ]
 
     try:

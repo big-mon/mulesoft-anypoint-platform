@@ -26,7 +26,13 @@ class MockResponse:
 
     def raise_for_status(self):
         if self.status >= 400:
-            raise aiohttp.ClientResponseError(None, None, status=self.status)
+            request_info = Mock()
+            request_info.real_url = "https://example.com"
+            raise aiohttp.ClientResponseError(
+                request_info=request_info,
+                history=(),
+                status=self.status,
+            )
 
 
 def _build_output_mocks(enabled=True):
@@ -108,6 +114,62 @@ async def test_export_api_manager_info_formats_and_outputs(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_export_api_manager_info_handles_missing_api_fields(monkeypatch):
+    """It defaults missing API fields instead of raising KeyError."""
+    monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
+    file_output, output_config = _build_output_mocks()
+
+    def mock_get(self, url, **kwargs):
+        if url.endswith("/apis"):
+            return MockResponse(
+                {
+                    "assets": [
+                        {
+                            "apis": [
+                                {
+                                    "deployment": None,
+                                }
+                            ],
+                        }
+                    ]
+                }
+            )
+        raise AssertionError(f"Unexpected URL: {url}")
+
+    monkeypatch.setattr("aiohttp.ClientSession.get", mock_get)
+
+    result = await export_api_manager_info(
+        "token",
+        [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
+        file_output,
+        output_config,
+    )
+
+    assert result == [
+        {
+            "env_name": "Sandbox",
+            "org_id": "org-1",
+            "env_id": "env-1",
+            "apis": [
+                {
+                    "id": None,
+                    "exchangeAssetName": "",
+                    "instanceLabel": "",
+                    "activeContractsCount": 0,
+                    "status": None,
+                    "deployment_applicationId": None,
+                    "policies": [],
+                    "contracts": [],
+                    "alerts": [],
+                    "tiers": [],
+                }
+            ],
+        }
+    ]
+    file_output.output_json.assert_called_once_with(result, "api_manager.json")
+
+
+@pytest.mark.asyncio
 async def test_export_api_manager_info_handles_empty_api_list(monkeypatch):
     """It still outputs structured data when no APIs are returned."""
     monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
@@ -137,7 +199,7 @@ async def test_export_api_manager_info_handles_empty_api_list(monkeypatch):
 async def test_export_api_manager_info_handles_empty_detail_payloads(monkeypatch):
     """It fills missing detail collections with empty lists."""
     monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
-    file_output, output_config = _build_output_mocks(enabled=False)
+    file_output, output_config = _build_output_mocks()
 
     def mock_get(self, url, **kwargs):
         if url.endswith("/apis"):
@@ -183,4 +245,52 @@ async def test_export_api_manager_info_handles_empty_detail_payloads(monkeypatch
     assert result[0]["apis"][0]["contracts"] == []
     assert result[0]["apis"][0]["alerts"] == []
     assert result[0]["apis"][0]["tiers"] == []
+    file_output.output_json.assert_called_once_with(result, "api_manager.json")
+
+
+@pytest.mark.asyncio
+async def test_export_api_manager_info_skips_output_when_disabled(monkeypatch):
+    """It returns data without writing files when output is disabled."""
+    monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
+    file_output, output_config = _build_output_mocks(enabled=False)
+
+    def mock_get(self, url, **kwargs):
+        if url.endswith("/apis"):
+            return MockResponse({"assets": []})
+        raise AssertionError(f"Unexpected URL: {url}")
+
+    monkeypatch.setattr("aiohttp.ClientSession.get", mock_get)
+
+    result = await export_api_manager_info(
+        "token",
+        [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
+        file_output,
+        output_config,
+    )
+
+    assert result == [
+        {"env_name": "Sandbox", "org_id": "org-1", "env_id": "env-1", "apis": []}
+    ]
+    file_output.output_json.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_export_api_manager_info_returns_none_on_http_error(monkeypatch):
+    """It returns None and does not write output when API Manager calls fail."""
+    monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
+    file_output, output_config = _build_output_mocks()
+
+    def mock_get(self, url, **kwargs):
+        return MockResponse({"error": "Internal Server Error"}, status=500)
+
+    monkeypatch.setattr("aiohttp.ClientSession.get", mock_get)
+
+    result = await export_api_manager_info(
+        "token",
+        [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
+        file_output,
+        output_config,
+    )
+
+    assert result is None
     file_output.output_json.assert_not_called()
