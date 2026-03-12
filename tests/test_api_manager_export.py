@@ -276,3 +276,31 @@ async def test_export_api_manager_info_does_not_create_owned_client_when_injecte
     assert result == [
         {"env_name": "Sandbox", "org_id": "org-1", "env_id": "env-1", "apis": []}
     ]
+
+
+@pytest.mark.asyncio
+async def test_export_api_manager_info_masks_proxy_credentials_in_error_output(
+    monkeypatch, capsys
+):
+    """It redacts proxy userinfo before logging export failures."""
+    monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
+    file_output, output_config = build_output_mocks(filename="api_manager.json")
+
+    with pytest.raises(RuntimeError):
+        await export_api_manager_info(
+            "token",
+            [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
+            file_output,
+            output_config,
+            http_client=FakeHTTPClient(
+                lambda url, **kwargs: RuntimeError(
+                    "proxy http://user:pass@proxy.local:8080 refused "
+                    "https://example.com/apimanager/api/v1/organizations/org-1"
+                )
+            ),
+        )
+
+    captured = capsys.readouterr()
+    assert "http://***@proxy.local:8080" in captured.out
+    assert "https://example.com/apimanager/api/v1/organizations/org-1" in captured.out
+    assert "user:pass" not in captured.out

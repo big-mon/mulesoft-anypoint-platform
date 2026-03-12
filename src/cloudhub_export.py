@@ -4,6 +4,7 @@
 import asyncio
 
 from src.export_common import export_runtime, write_export_output
+from src.utils.error_sanitizer import sanitize_error_message
 
 
 async def export_cloudhub_info(
@@ -51,7 +52,10 @@ async def _export_cloudhub_info(
         print("Runtime Manager information exported successfully.")
         return formatted_applications
     except Exception as exc:
-        print(f"Failed to export Runtime Manager information: {exc}")
+        print(
+            "Failed to export Runtime Manager information: "
+            f"{sanitize_error_message(exc)}"
+        )
         raise
 
 
