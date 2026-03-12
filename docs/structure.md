@@ -1,107 +1,103 @@
-# 構成メモ
+# Structure
 
-## 1. ディレクトリ構成
+## Directory Layout
 
 ```text
 mulesoft-anypoint-platform/
-├── config/               # 出力設定
-├── docs/                 # ドキュメント
-├── output/               # JSON 出力先
+├── config/
+├── docs/
+├── output/
 ├── src/
-│   ├── api/              # 補助 API 呼び出し
-│   ├── auth/             # 認証
-│   ├── utils/            # 共通ユーティリティ
+│   ├── api/
+│   │   └── accounts.py
+│   ├── auth/
+│   │   └── client.py
+│   ├── utils/
+│   │   ├── config.py
+│   │   ├── file_output.py
+│   │   ├── http_client.py
+│   │   ├── output_config.py
+│   │   └── proxy.py
+│   ├── export_common.py
 │   ├── api_manager_export.py
 │   ├── cloudhub_export.py
 │   └── main.py
-└── tests/                # テスト
+└── tests/
 ```
 
-## 2. 現在の設計方針
+## Runtime Flow
 
-このアプリケーションは単純な取得・整形・出力ツールとして設計しています。
+1. `python -m src.main` loads configuration and creates a shared `AsyncHTTPClient`.
+2. `src/auth/client.py` retrieves the OAuth access token.
+3. `src/api/accounts.py` fetches organization environments.
+4. `src/export_common.py` resolves shared export context.
+5. `src/api_manager_export.py` and `src/cloudhub_export.py` run concurrently.
+6. Each export module transforms the payload and writes JSON output when enabled.
 
-- 出力物ごとに 1 モジュール
-- 不要な service 層や client 層は作らない
-- 共通化は認証、環境一覧取得、出力処理だけに限定
-
-読み順は以下です。
-
-1. `src/main.py` で設定読み込み、認証、環境一覧取得
-2. `src/api_manager_export.py` で API Manager 情報を出力
-3. `src/cloudhub_export.py` で Runtime Manager 情報を出力
-
-## 3. モジュール一覧
+## Module Responsibilities
 
 ### `src/main.py`
 
-- エントリーポイント
-- `AuthClient` でアクセストークン取得
-- `AccountsAPI` で環境一覧取得
-- 出力ディレクトリ準備
-- API Manager / Runtime Manager の 2 処理を `asyncio.gather()` で実行
+- Loads `.env` and output configuration
+- Creates the shared async transport
+- Orchestrates authentication, environment lookup, and both exports
 
-### `src/api_manager_export.py`
+### `src/export_common.py`
 
-- API Manager の一覧取得
-- API 一覧を出力用に整形
-- API ごとの詳細情報取得
-  - policies
-  - contracts
-  - alerts
-  - tiers
-- 詳細情報を API 単位で反映
-- `api_manager.json` 出力
-
-### `src/cloudhub_export.py`
-
-- Runtime Manager のアプリケーション一覧取得
-- 出力用に整形
-- `cloudhub.json` 出力
-
-### `src/api/accounts.py`
-
-- 組織配下の環境一覧取得
+- Resolves the export config, base URL, and auth header
+- Creates an owned transport only when a caller did not inject one
+- Handles shared output writing for export modules
 
 ### `src/auth/client.py`
 
-- OAuth クライアントクレデンシャルでアクセストークン取得
+- Fetches and caches the OAuth access token
+- Uses the shared transport for outbound HTTP
 
-### `src/utils/file_output.py`
+### `src/api/accounts.py`
 
-- 出力ディレクトリ作成
-- JSON ファイル書き込み
+- Fetches the organization environment list
+- Uses the shared transport for outbound HTTP
 
-### `src/utils/output_config.py`
+### `src/api_manager_export.py`
 
-- `config/output_config.env` の読み込み
-- 出力有無とファイル名の参照
+- Fetches API Manager API lists per environment
+- Fetches policies, contracts, alerts, and tiers per API
+- Flattens and enriches the final payload
+- Writes `api_manager.json` when enabled
+
+### `src/cloudhub_export.py`
+
+- Fetches Runtime Manager applications per environment
+- Preserves the Runtime Manager payload shape
+- Writes `cloudhub.json` when enabled
+
+### `src/utils/http_client.py`
+
+- Owns the shared `aiohttp` session
+- Applies proxy selection through `ProxyConfig`
+- Enforces global concurrency and minimum request spacing
+- Retries `429` and `503` responses
+- Honors `Retry-After` and otherwise applies exponential backoff with jitter
+
+### `src/utils/proxy.py`
+
+- Resolves `ANYPOINT_PROXY_URL`
+- Resolves `ANYPOINT_HTTP_PROXY`
+- Resolves `ANYPOINT_HTTPS_PROXY`
+- Returns `aiohttp` request kwargs for a target URL
 
 ### `src/utils/config.py`
 
-- `.env` の読み込み
-- 必須設定値の検証
+- Loads required credentials and base URL
+- Loads HTTP pacing, retry, and timeout settings
 
-## 4. 処理フロー
+### `src/utils/output_config.py`
 
-### API Manager
+- Loads `config/output_config.env`
+- Controls output enable flags and output filenames
 
-1. 環境ごとに API 一覧を取得
-2. 出力に必要な項目へ整形
-3. 各 API の詳細情報を並列取得
-4. API ID 単位で詳細を反映
-5. 設定が有効なら `api_manager.json` を出力
+## Test Strategy
 
-### Runtime Manager
-
-1. 環境ごとにアプリケーション一覧を取得
-2. 出力に必要な構造へ整形
-3. 設定が有効なら `cloudhub.json` を出力
-
-## 5. テスト方針
-
-- 公開入口単位でテストする
-  - `export_api_manager_info(...)`
-  - `export_cloudhub_info(...)`
-- HTTP 層は `aiohttp.ClientSession.get` をモックして検証する
-- 出力有無は `FileOutput` と `OutputConfig` をモックして確認する
+- Export modules are tested by injecting a fake transport from `tests/conftest.py`
+- The shared HTTP client is tested directly for retry, proxy, and concurrency behavior
+- Auth and Accounts API modules are tested independently from the export modules

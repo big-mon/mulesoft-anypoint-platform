@@ -1,47 +1,44 @@
 #!/usr/bin/env python3
-"""Anypoint Platform認証クライアント"""
+"""Anypoint authentication client."""
 
-import os
-import requests
-from dotenv import load_dotenv
+import asyncio
 
-try:
-    from utils.proxy import ProxyConfig
-except ImportError:
-    from src.utils.proxy import ProxyConfig
+from src.utils.config import Config
 
 
 class AuthClient:
-    """認証クライアント(Access Management API)"""
+    """Fetch OAuth access tokens from Access Management API."""
 
-    def __init__(self):
-        load_dotenv()
+    def __init__(self, http_client, config=None):
+        self._http_client = http_client
+        self._config = config or Config()
         self.__access_token = None
-        self.__client_id = os.getenv('ANYPOINT_CLIENT_ID')
-        self.__client_secret = os.getenv('ANYPOINT_CLIENT_SECRET')
-        self._base_url = os.getenv('ANYPOINT_BASE_URL')
-        self._session = requests.Session()
-        self._session.trust_env = False
-        self._session.proxies.update(ProxyConfig().get_requests_proxies())
+        self._token_lock = asyncio.Lock()
 
-    def get_access_token(self):
-        """Connected Appを使用してアクセストークンを取得"""
+    async def get_access_token(self):
+        """Return a cached access token or fetch a new one."""
         if self.__access_token:
             return self.__access_token
 
-        auth_url = f"{self._base_url}/accounts/api/v2/oauth2/token"
+        async with self._token_lock:
+            if self.__access_token:
+                return self.__access_token
+
+            self.__access_token = await self._fetch_access_token()
+            return self.__access_token
+
+    async def refresh_token(self):
+        """Force a new access token fetch."""
+        async with self._token_lock:
+            self.__access_token = await self._fetch_access_token()
+            return self.__access_token
+
+    async def _fetch_access_token(self):
+        auth_url = f"{self._config.get_base_url()}/accounts/api/v2/oauth2/token"
         payload = {
-            'grant_type': 'client_credentials',
-            'client_id': self.__client_id,
-            'client_secret': self.__client_secret
+            "grant_type": "client_credentials",
+            "client_id": self._config.get_client_id(),
+            "client_secret": self._config.get_client_secret(),
         }
-        response = self._session.post(auth_url, data=payload)
-        response.raise_for_status()
-
-        self.__access_token = response.json()['access_token']
-        return self.__access_token
-
-    def refresh_token(self):
-        """アクセストークンを強制的に更新"""
-        self.__access_token = None
-        return self.get_access_token()
+        response = await self._http_client.post_json(auth_url, data=payload)
+        return response["access_token"]

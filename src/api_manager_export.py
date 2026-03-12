@@ -2,75 +2,90 @@
 """Export API Manager information."""
 
 import asyncio
-import os
 
-import aiohttp
-from dotenv import load_dotenv
-
-try:
-    from utils.proxy import ProxyConfig
-except ImportError:
-    from src.utils.proxy import ProxyConfig
+from src.export_common import export_runtime, write_export_output
 
 
-load_dotenv()
-REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30, connect=10, sock_read=30)
-
-
-async def export_api_manager_info(access_token, environments, file_output, output_config):
+async def export_api_manager_info(
+    access_token,
+    environments,
+    file_output,
+    output_config,
+    http_client=None,
+    config=None,
+):
     """Fetch, transform, and optionally output API Manager information."""
-    base_url = os.getenv("ANYPOINT_BASE_URL", "https://anypoint.mulesoft.com")
-    headers = {"Authorization": f"Bearer {access_token}"}
-    proxy_config = ProxyConfig()
-
     try:
-        async with aiohttp.ClientSession(headers=headers, timeout=REQUEST_TIMEOUT) as session:
-            applications = await _fetch_applications(
-                session,
+        async with export_runtime(
+            access_token,
+            http_client=http_client,
+            config=config,
+        ) as runtime:
+            _, headers, base_url, active_http_client = runtime
+            return await _export_api_manager_info(
+                active_http_client,
                 base_url,
+                headers,
                 environments,
-                proxy_config,
+                file_output,
+                output_config,
             )
-            formatted_applications = _format_applications(applications)
-            detail_map = await _fetch_detail_map(
-                session,
-                base_url,
-                formatted_applications,
-                proxy_config,
-            )
-
-        _apply_detail_map(formatted_applications, detail_map)
-        _output_api_manager_info(formatted_applications, file_output, output_config)
-        print("API Manager information exported successfully.")
-        return formatted_applications
     except Exception as exc:
         print(f"Failed to export API Manager information: {exc}")
-        return None
+        raise
 
 
-async def _fetch_applications(session, base_url, environments, proxy_config):
+async def _export_api_manager_info(
+    http_client,
+    base_url,
+    headers,
+    environments,
+    file_output,
+    output_config,
+):
+    applications = await _fetch_applications(
+        http_client,
+        base_url,
+        headers,
+        environments,
+    )
+    formatted_applications = _format_applications(applications)
+    detail_map = await _fetch_detail_map(
+        http_client,
+        base_url,
+        headers,
+        formatted_applications,
+    )
+    _apply_detail_map(formatted_applications, detail_map)
+    _output_api_manager_info(formatted_applications, file_output, output_config)
+    print("API Manager information exported successfully.")
+    return formatted_applications
+
+
+async def _fetch_applications(http_client, base_url, headers, environments):
     tasks = [
-        _fetch_environment_applications(session, base_url, environment, proxy_config)
+        _fetch_environment_applications(http_client, base_url, headers, environment)
         for environment in environments
     ]
     return await asyncio.gather(*tasks)
 
 
-async def _fetch_environment_applications(session, base_url, environment, proxy_config):
+async def _fetch_environment_applications(http_client, base_url, headers, environment):
     url = (
         f"{base_url}/apimanager/api/v1/organizations/{environment['org_id']}"
         f"/environments/{environment['env_id']}/apis"
     )
-    params = {"sort": "name"}
-    request_kwargs = proxy_config.get_aiohttp_request_kwargs(url)
-    async with session.get(url, params=params, **request_kwargs) as response:
-        response.raise_for_status()
-        return {
-            "env_name": environment["name"],
-            "org_id": environment["org_id"],
-            "env_id": environment["env_id"],
-            "apis": await response.json(),
-        }
+    payload = await http_client.get_json(
+        url,
+        headers=headers,
+        params={"sort": "name"},
+    )
+    return {
+        "env_name": environment["name"],
+        "org_id": environment["org_id"],
+        "env_id": environment["env_id"],
+        "apis": payload,
+    }
 
 
 def _format_applications(applications):
@@ -102,7 +117,7 @@ def _format_applications(applications):
     return formatted
 
 
-async def _fetch_detail_map(session, base_url, applications, proxy_config):
+async def _fetch_detail_map(http_client, base_url, headers, applications):
     tasks = []
     for environment in applications:
         for api in environment["apis"]:
@@ -111,12 +126,12 @@ async def _fetch_detail_map(session, base_url, applications, proxy_config):
                 continue
             tasks.append(
                 _fetch_api_details(
-                    session,
+                    http_client,
                     base_url,
+                    headers,
                     environment["org_id"],
                     environment["env_id"],
                     api_id,
-                    proxy_config,
                 )
             )
 
@@ -127,29 +142,16 @@ async def _fetch_detail_map(session, base_url, applications, proxy_config):
     }
 
 
-async def _fetch_api_details(session, base_url, org_id, env_id, api_id, proxy_config):
-    policies_url = (
+async def _fetch_api_details(http_client, base_url, headers, org_id, env_id, api_id):
+    base_api_url = (
         f"{base_url}/apimanager/api/v1/organizations/{org_id}"
-        f"/environments/{env_id}/apis/{api_id}/policies"
+        f"/environments/{env_id}/apis/{api_id}"
     )
-    contracts_url = (
-        f"{base_url}/apimanager/api/v1/organizations/{org_id}"
-        f"/environments/{env_id}/apis/{api_id}/contracts"
-    )
-    alerts_url = (
-        f"{base_url}/apimanager/api/v1/organizations/{org_id}"
-        f"/environments/{env_id}/apis/{api_id}/alerts"
-    )
-    tiers_url = (
-        f"{base_url}/apimanager/api/v1/organizations/{org_id}"
-        f"/environments/{env_id}/apis/{api_id}/tiers"
-    )
-
     policies, contracts, alerts, tiers = await asyncio.gather(
-        _fetch_json(session, policies_url, proxy_config),
-        _fetch_json(session, contracts_url, proxy_config),
-        _fetch_json(session, alerts_url, proxy_config),
-        _fetch_json(session, tiers_url, proxy_config),
+        _fetch_json(http_client, f"{base_api_url}/policies", headers),
+        _fetch_json(http_client, f"{base_api_url}/contracts", headers),
+        _fetch_json(http_client, f"{base_api_url}/alerts", headers),
+        _fetch_json(http_client, f"{base_api_url}/tiers", headers),
     )
 
     return {
@@ -163,11 +165,8 @@ async def _fetch_api_details(session, base_url, org_id, env_id, api_id, proxy_co
     }
 
 
-async def _fetch_json(session, url, proxy_config):
-    request_kwargs = proxy_config.get_aiohttp_request_kwargs(url)
-    async with session.get(url, **request_kwargs) as response:
-        response.raise_for_status()
-        return await response.json()
+async def _fetch_json(http_client, url, headers):
+    return await http_client.get_json(url, headers=headers)
 
 
 def _apply_detail_map(applications, detail_map):
@@ -184,7 +183,10 @@ def _apply_detail_map(applications, detail_map):
 
 
 def _output_api_manager_info(applications, file_output, output_config):
-    if file_output and output_config.get_output_setting("api_manager"):
-        filename = output_config.get_output_filename("api_manager")
-        file_path = file_output.output_json(applications, filename)
-        print(f"API Manager output saved to: {file_path}")
+    write_export_output(
+        "api_manager",
+        "API Manager",
+        applications,
+        file_output,
+        output_config,
+    )

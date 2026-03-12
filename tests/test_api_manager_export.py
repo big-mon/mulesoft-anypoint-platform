@@ -1,93 +1,66 @@
 """Tests for API Manager export flow."""
 
-from unittest.mock import Mock
-
 import aiohttp
 import pytest
 
 from src.api_manager_export import export_api_manager_info
-
-
-class MockResponse:
-    """Minimal async response stub."""
-
-    def __init__(self, payload, status=200):
-        self._payload = payload
-        self.status = status
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        return False
-
-    async def json(self):
-        return self._payload
-
-    def raise_for_status(self):
-        if self.status >= 400:
-            request_info = Mock()
-            request_info.real_url = "https://example.com"
-            raise aiohttp.ClientResponseError(
-                request_info=request_info,
-                history=(),
-                status=self.status,
-            )
-
-
-def _build_output_mocks(enabled=True):
-    file_output = Mock()
-    file_output.output_json.return_value = "output/api_manager.json"
-    output_config = Mock()
-    output_config.get_output_setting.return_value = enabled
-    output_config.get_output_filename.return_value = "api_manager.json"
-    return file_output, output_config
+from tests.conftest import FakeHTTPClient, build_http_error, build_output_mocks
 
 
 @pytest.mark.asyncio
 async def test_export_api_manager_info_formats_and_outputs(monkeypatch):
     """It fetches, enriches, and outputs API Manager data."""
     monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
-    file_output, output_config = _build_output_mocks()
+    file_output, output_config = build_output_mocks(filename="api_manager.json")
+    expected_base_url = (
+        "https://example.com/apimanager/api/v1/organizations/org-1/"
+        "environments/env-1/apis/api-1"
+    )
 
-    def mock_get(self, url, **kwargs):
-        assert kwargs["proxy"] is None
+    def responder(url, **kwargs):
         if url.endswith("/apis"):
-            return MockResponse(
-                {
-                    "assets": [
-                        {
-                            "exchangeAssetName": "orders-api",
-                            "apis": [
-                                {
-                                    "id": "api-1",
-                                    "instanceLabel": "Orders",
-                                    "activeContractsCount": 2,
-                                    "status": "ACTIVE",
-                                    "deployment": {"applicationId": "orders-app"},
-                                }
-                            ],
-                        }
-                    ]
-                }
-            )
-        if url.endswith("/policies"):
-            return MockResponse({"policies": [{"id": "policy-1"}]})
-        if url.endswith("/contracts"):
-            return MockResponse({"contracts": [{"id": "contract-1"}]})
-        if url.endswith("/alerts"):
-            return MockResponse([{"id": "alert-1"}])
-        if url.endswith("/tiers"):
-            return MockResponse({"tiers": [{"id": "tier-1"}]})
+            assert kwargs["headers"] == {"Authorization": "Bearer token"}
+            assert kwargs["params"] == {"sort": "name"}
+            return {
+                "assets": [
+                    {
+                        "exchangeAssetName": "orders-api",
+                        "apis": [
+                            {
+                                "id": "api-1",
+                                "instanceLabel": "Orders",
+                                "activeContractsCount": 2,
+                                "status": "ACTIVE",
+                                "deployment": {"applicationId": "orders-app"},
+                            }
+                        ],
+                    }
+                ]
+            }
+        if url == f"{expected_base_url}/policies":
+            assert kwargs["headers"] == {"Authorization": "Bearer token"}
+            assert kwargs["params"] is None
+            return {"policies": [{"id": "policy-1"}]}
+        if url == f"{expected_base_url}/contracts":
+            assert kwargs["headers"] == {"Authorization": "Bearer token"}
+            assert kwargs["params"] is None
+            return {"contracts": [{"id": "contract-1"}]}
+        if url == f"{expected_base_url}/alerts":
+            assert kwargs["headers"] == {"Authorization": "Bearer token"}
+            assert kwargs["params"] is None
+            return [{"id": "alert-1"}]
+        if url == f"{expected_base_url}/tiers":
+            assert kwargs["headers"] == {"Authorization": "Bearer token"}
+            assert kwargs["params"] is None
+            return {"tiers": [{"id": "tier-1"}]}
         raise AssertionError(f"Unexpected URL: {url}")
-
-    monkeypatch.setattr("aiohttp.ClientSession.get", mock_get)
 
     result = await export_api_manager_info(
         "token",
         [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
         file_output,
         output_config,
+        http_client=FakeHTTPClient(responder),
     )
 
     assert result == [
@@ -118,32 +91,29 @@ async def test_export_api_manager_info_formats_and_outputs(monkeypatch):
 async def test_export_api_manager_info_handles_missing_api_fields(monkeypatch):
     """It defaults missing API fields instead of raising KeyError."""
     monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
-    file_output, output_config = _build_output_mocks()
+    file_output, output_config = build_output_mocks(filename="api_manager.json")
 
-    def mock_get(self, url, **kwargs):
+    def responder(url, **kwargs):
         if url.endswith("/apis"):
-            return MockResponse(
-                {
-                    "assets": [
-                        {
-                            "apis": [
-                                {
-                                    "deployment": None,
-                                }
-                            ],
-                        }
-                    ]
-                }
-            )
+            return {
+                "assets": [
+                    {
+                        "apis": [
+                            {
+                                "deployment": None,
+                            }
+                        ],
+                    }
+                ]
+            }
         raise AssertionError(f"Unexpected URL: {url}")
-
-    monkeypatch.setattr("aiohttp.ClientSession.get", mock_get)
 
     result = await export_api_manager_info(
         "token",
         [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
         file_output,
         output_config,
+        http_client=FakeHTTPClient(responder),
     )
 
     assert result == [
@@ -174,20 +144,14 @@ async def test_export_api_manager_info_handles_missing_api_fields(monkeypatch):
 async def test_export_api_manager_info_handles_empty_api_list(monkeypatch):
     """It still outputs structured data when no APIs are returned."""
     monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
-    file_output, output_config = _build_output_mocks()
-
-    def mock_get(self, url, **kwargs):
-        if url.endswith("/apis"):
-            return MockResponse({"assets": []})
-        raise AssertionError(f"Unexpected URL: {url}")
-
-    monkeypatch.setattr("aiohttp.ClientSession.get", mock_get)
+    file_output, output_config = build_output_mocks(filename="api_manager.json")
 
     result = await export_api_manager_info(
         "token",
         [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
         file_output,
         output_config,
+        http_client=FakeHTTPClient(lambda url, **kwargs: {"assets": []}),
     )
 
     assert result == [
@@ -200,45 +164,42 @@ async def test_export_api_manager_info_handles_empty_api_list(monkeypatch):
 async def test_export_api_manager_info_handles_empty_detail_payloads(monkeypatch):
     """It fills missing detail collections with empty lists."""
     monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
-    file_output, output_config = _build_output_mocks()
+    file_output, output_config = build_output_mocks(filename="api_manager.json")
 
-    def mock_get(self, url, **kwargs):
+    def responder(url, **kwargs):
         if url.endswith("/apis"):
-            return MockResponse(
-                {
-                    "assets": [
-                        {
-                            "exchangeAssetName": "orders-api",
-                            "apis": [
-                                {
-                                    "id": "api-1",
-                                    "instanceLabel": "Orders",
-                                    "activeContractsCount": 0,
-                                    "status": "ACTIVE",
-                                    "deployment": None,
-                                }
-                            ],
-                        }
-                    ]
-                }
-            )
+            return {
+                "assets": [
+                    {
+                        "exchangeAssetName": "orders-api",
+                        "apis": [
+                            {
+                                "id": "api-1",
+                                "instanceLabel": "Orders",
+                                "activeContractsCount": 0,
+                                "status": "ACTIVE",
+                                "deployment": None,
+                            }
+                        ],
+                    }
+                ]
+            }
         if url.endswith("/policies"):
-            return MockResponse({})
+            return {}
         if url.endswith("/contracts"):
-            return MockResponse({})
+            return {}
         if url.endswith("/alerts"):
-            return MockResponse([])
+            return []
         if url.endswith("/tiers"):
-            return MockResponse({})
+            return {}
         raise AssertionError(f"Unexpected URL: {url}")
-
-    monkeypatch.setattr("aiohttp.ClientSession.get", mock_get)
 
     result = await export_api_manager_info(
         "token",
         [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
         file_output,
         output_config,
+        http_client=FakeHTTPClient(responder),
     )
 
     assert result[0]["apis"][0]["deployment_applicationId"] is None
@@ -253,20 +214,17 @@ async def test_export_api_manager_info_handles_empty_detail_payloads(monkeypatch
 async def test_export_api_manager_info_skips_output_when_disabled(monkeypatch):
     """It returns data without writing files when output is disabled."""
     monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
-    file_output, output_config = _build_output_mocks(enabled=False)
-
-    def mock_get(self, url, **kwargs):
-        if url.endswith("/apis"):
-            return MockResponse({"assets": []})
-        raise AssertionError(f"Unexpected URL: {url}")
-
-    monkeypatch.setattr("aiohttp.ClientSession.get", mock_get)
+    file_output, output_config = build_output_mocks(
+        enabled=False,
+        filename="api_manager.json",
+    )
 
     result = await export_api_manager_info(
         "token",
         [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
         file_output,
         output_config,
+        http_client=FakeHTTPClient(lambda url, **kwargs: {"assets": []}),
     )
 
     assert result == [
@@ -276,49 +234,43 @@ async def test_export_api_manager_info_skips_output_when_disabled(monkeypatch):
 
 
 @pytest.mark.asyncio
-async def test_export_api_manager_info_returns_none_on_http_error(monkeypatch):
-    """It returns None and does not write output when API Manager calls fail."""
+async def test_export_api_manager_info_raises_on_http_error(monkeypatch):
+    """It preserves API failures for callers and does not write output."""
     monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
-    file_output, output_config = _build_output_mocks()
+    file_output, output_config = build_output_mocks(filename="api_manager.json")
 
-    def mock_get(self, url, **kwargs):
-        return MockResponse({"error": "Internal Server Error"}, status=500)
+    with pytest.raises(aiohttp.ClientResponseError):
+        await export_api_manager_info(
+            "token",
+            [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
+            file_output,
+            output_config,
+            http_client=FakeHTTPClient(lambda url, **kwargs: build_http_error(503)),
+        )
 
-    monkeypatch.setattr("aiohttp.ClientSession.get", mock_get)
-
-    result = await export_api_manager_info(
-        "token",
-        [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
-        file_output,
-        output_config,
-    )
-
-    assert result is None
     file_output.output_json.assert_not_called()
 
 
 @pytest.mark.asyncio
-async def test_export_api_manager_info_uses_configured_https_proxy(monkeypatch):
-    """It passes the configured HTTPS proxy to API Manager requests."""
+async def test_export_api_manager_info_does_not_create_owned_client_when_injected(
+    monkeypatch,
+):
+    """It uses the injected HTTP client without constructing another transport."""
     monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
-    monkeypatch.setenv("ANYPOINT_HTTPS_PROXY", "http://proxy.local:8443")
-    monkeypatch.delenv("ANYPOINT_PROXY_URL", raising=False)
-    monkeypatch.delenv("ANYPOINT_HTTP_PROXY", raising=False)
-    file_output, output_config = _build_output_mocks()
+    file_output, output_config = build_output_mocks(filename="api_manager.json")
 
-    def mock_get(self, url, **kwargs):
-        assert kwargs["proxy"] == "http://proxy.local:8443"
-        if url.endswith("/apis"):
-            return MockResponse({"assets": []})
-        raise AssertionError(f"Unexpected URL: {url}")
+    class UnexpectedHTTPClient:
+        def __init__(self, *args, **kwargs):
+            raise AssertionError("owned client should not be created")
 
-    monkeypatch.setattr("aiohttp.ClientSession.get", mock_get)
+    monkeypatch.setattr("src.export_common.AsyncHTTPClient", UnexpectedHTTPClient)
 
     result = await export_api_manager_info(
         "token",
         [{"name": "Sandbox", "org_id": "org-1", "env_id": "env-1"}],
         file_output,
         output_config,
+        http_client=FakeHTTPClient(lambda url, **kwargs: {"assets": []}),
     )
 
     assert result == [
