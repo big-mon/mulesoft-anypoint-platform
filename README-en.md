@@ -56,6 +56,8 @@ python -m pip install -r requirements.txt
 cp .env.example .env
 ```
 
+All dependencies, including `pytest` and `pytest-asyncio`, are installed into `.venv`, so no global installation is required.
+
 Set the following values in `.env`:
 
 - `ANYPOINT_CLIENT_ID`: Anypoint Platform client ID

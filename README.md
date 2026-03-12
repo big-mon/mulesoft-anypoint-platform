@@ -59,6 +59,8 @@ cp .env.example .env
 
 `.env` に次の値を設定します。
 
+`pytest` と `pytest-asyncio` を含む依存関係は `.venv` にインストールされるため、グローバルインストールは不要です。
+
 - `ANYPOINT_CLIENT_ID`: Anypoint Platform の client ID
 - `ANYPOINT_CLIENT_SECRET`: Anypoint Platform の client secret
 - `ANYPOINT_ORGANIZATION_ID`: organization ID
