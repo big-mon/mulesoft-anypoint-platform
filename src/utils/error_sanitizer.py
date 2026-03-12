@@ -18,7 +18,11 @@ def _sanitize_url_match(match):
 
 def sanitize_url(url):
     """Return a copy of the URL with any userinfo replaced."""
-    parts = urlsplit(url)
+    try:
+        parts = urlsplit(url)
+    except ValueError:
+        return url
+
     if not parts.netloc or "@" not in parts.netloc:
         return url
 
