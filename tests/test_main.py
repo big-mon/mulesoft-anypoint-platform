@@ -47,6 +47,13 @@ class DummyAuthClient:
         return "token"
 
 
+class FailingAuthClient(DummyAuthClient):
+    """Auth client stub that raises a proxy-related error."""
+
+    async def get_access_token(self):
+        raise RuntimeError("proxy connect failed: http://user:pass@proxy.local:8080")
+
+
 class DummyAccountsAPI:
     """Minimal accounts API stub."""
 

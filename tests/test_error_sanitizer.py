@@ -23,3 +23,10 @@ def test_sanitize_error_message_leaves_urls_without_userinfo_unchanged():
     message = "request failed for https://anypoint.mulesoft.com/accounts"
 
     assert sanitize_error_message(message) == message
+
+
+def test_sanitize_error_message_ignores_malformed_urls():
+    """It falls back to the original text when URL parsing fails."""
+    message = "proxy http://user:pass@[proxy.local:8080 refused the connection"
+
+    assert sanitize_error_message(message) == message
