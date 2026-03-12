@@ -109,3 +109,33 @@ async def test_main_returns_one_when_export_fails(monkeypatch):
     monkeypatch.setattr(main_module, "export_cloudhub_info", export_cloudhub_info)
 
     assert await main_module.main() == 1
+
+
+@pytest.mark.asyncio
+async def test_main_masks_proxy_credentials_in_error_output(monkeypatch, capsys):
+    """It redacts proxy userinfo before printing failures."""
+    monkeypatch.setattr(main_module, "Config", DummyConfig)
+    monkeypatch.setattr(main_module, "OutputConfig", DummyOutputConfig)
+    monkeypatch.setattr(main_module, "FileOutput", DummyFileOutput)
+    monkeypatch.setattr(main_module, "AsyncHTTPClient", DummyHTTPClientContext)
+    monkeypatch.setattr(main_module, "AuthClient", DummyAuthClient)
+    monkeypatch.setattr(main_module, "AccountsAPI", DummyAccountsAPI)
+
+    async def export_api_manager_info(*args, **kwargs):
+        raise RuntimeError(
+            "proxy http://user:pass@proxy.local:8080 refused "
+            "https://anypoint.mulesoft.com/accounts"
+        )
+
+    async def export_cloudhub_info(*args, **kwargs):
+        return []
+
+    monkeypatch.setattr(main_module, "export_api_manager_info", export_api_manager_info)
+    monkeypatch.setattr(main_module, "export_cloudhub_info", export_cloudhub_info)
+
+    assert await main_module.main() == 1
+
+    captured = capsys.readouterr()
+    assert "http://***@proxy.local:8080" in captured.out
+    assert "https://anypoint.mulesoft.com/accounts" in captured.out
+    assert "user:pass" not in captured.out
