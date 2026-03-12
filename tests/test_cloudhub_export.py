@@ -116,10 +116,10 @@ async def test_export_cloudhub_info_does_not_create_owned_client_when_injected(
 
 
 @pytest.mark.asyncio
-async def test_export_cloudhub_info_redacts_proxy_credentials_in_error_output(
+async def test_export_cloudhub_info_masks_proxy_credentials_in_error_output(
     monkeypatch, capsys
 ):
-    """It redacts proxy credentials before printing export failures."""
+    """It redacts proxy userinfo before logging export failures."""
     monkeypatch.setenv("ANYPOINT_BASE_URL", "https://example.com")
     file_output, output_config = build_output_mocks(filename="cloudhub.json")
 
@@ -131,11 +131,13 @@ async def test_export_cloudhub_info_redacts_proxy_credentials_in_error_output(
             output_config,
             http_client=FakeHTTPClient(
                 lambda url, **kwargs: RuntimeError(
-                    "proxy failed: http://user:pass@proxy.local:8080"
+                    "proxy http://user:pass@proxy.local:8080 refused "
+                    "https://example.com/cloudhub/api/v2/applications"
                 )
             ),
         )
 
     captured = capsys.readouterr()
-    assert "http://***:***@proxy.local:8080" in captured.out
-    assert "http://user:pass@proxy.local:8080" not in captured.out
+    assert "http://***@proxy.local:8080" in captured.out
+    assert "https://example.com/cloudhub/api/v2/applications" in captured.out
+    assert "user:pass" not in captured.out

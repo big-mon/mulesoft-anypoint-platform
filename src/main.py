@@ -8,7 +8,7 @@ from src.api_manager_export import export_api_manager_info
 from src.auth.client import AuthClient
 from src.cloudhub_export import export_cloudhub_info
 from src.utils.config import Config
-from src.utils.error_formatting import format_exception_message
+from src.utils.error_sanitizer import sanitize_error_message
 from src.utils.file_output import FileOutput
 from src.utils.http_client import AsyncHTTPClient
 from src.utils.output_config import OutputConfig
@@ -31,7 +31,7 @@ async def main():
             access_token = await auth_client.get_access_token()
             print("Access token retrieved successfully.")
         except Exception as exc:
-            print(f"Failed to retrieve access token: {format_exception_message(exc)}")
+            print(f"Failed to retrieve access token: {sanitize_error_message(exc)}")
             return 1
 
         try:
@@ -41,7 +41,7 @@ async def main():
         except Exception as exc:
             print(
                 "Failed to retrieve organization environments: "
-                f"{format_exception_message(exc)}"
+                f"{sanitize_error_message(exc)}"
             )
             return 1
 
@@ -74,7 +74,7 @@ async def main():
                 ),
             )
         except Exception as exc:
-            print(f"Failed to export information: {format_exception_message(exc)}")
+            print(f"Failed to export information: {sanitize_error_message(exc)}")
             return 1
 
     print("Completed.")
