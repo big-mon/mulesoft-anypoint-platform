@@ -4,6 +4,7 @@
 import asyncio
 
 from src.export_common import export_runtime, write_export_output
+from src.utils.error_formatting import format_exception_message
 
 
 async def export_api_manager_info(
@@ -31,7 +32,10 @@ async def export_api_manager_info(
                 output_config,
             )
     except Exception as exc:
-        print(f"Failed to export API Manager information: {exc}")
+        print(
+            "Failed to export API Manager information: "
+            f"{format_exception_message(exc)}"
+        )
         raise
 
 

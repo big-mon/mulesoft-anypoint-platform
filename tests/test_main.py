@@ -47,6 +47,13 @@ class DummyAuthClient:
         return "token"
 
 
+class FailingAuthClient(DummyAuthClient):
+    """Auth client stub that raises a proxy-related error."""
+
+    async def get_access_token(self):
+        raise RuntimeError("proxy connect failed: http://user:pass@proxy.local:8080")
+
+
 class DummyAccountsAPI:
     """Minimal accounts API stub."""
 
@@ -109,3 +116,19 @@ async def test_main_returns_one_when_export_fails(monkeypatch):
     monkeypatch.setattr(main_module, "export_cloudhub_info", export_cloudhub_info)
 
     assert await main_module.main() == 1
+
+
+@pytest.mark.asyncio
+async def test_main_redacts_proxy_credentials_in_error_output(monkeypatch, capsys):
+    """It redacts URL userinfo before printing failures."""
+    monkeypatch.setattr(main_module, "Config", DummyConfig)
+    monkeypatch.setattr(main_module, "OutputConfig", DummyOutputConfig)
+    monkeypatch.setattr(main_module, "FileOutput", DummyFileOutput)
+    monkeypatch.setattr(main_module, "AsyncHTTPClient", DummyHTTPClientContext)
+    monkeypatch.setattr(main_module, "AuthClient", FailingAuthClient)
+
+    assert await main_module.main() == 1
+
+    captured = capsys.readouterr()
+    assert "http://***:***@proxy.local:8080" in captured.out
+    assert "http://user:pass@proxy.local:8080" not in captured.out
