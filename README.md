@@ -43,9 +43,17 @@ MuleSoft Anypoint Platform の API Manager API と Runtime Manager API を使い
 ```bash
 git clone https://github.com/big-mon/mulesoft-anypoint-platform.git
 cd mulesoft-anypoint-platform
-pip install -r requirements.txt
+python -m venv .venv
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+# macOS / Linux
+# source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 cp .env.example .env
 ```
+
+`pytest` と `pytest-asyncio` を含む依存関係は `.venv` にインストールされるため、グローバルインストールは不要です。
 
 `.env` に以下を設定してください。
 

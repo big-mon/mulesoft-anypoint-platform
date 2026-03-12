@@ -43,9 +43,17 @@ The codebase is intentionally simple. Each output has one module, and each modul
 ```bash
 git clone https://github.com/big-mon/mulesoft-anypoint-platform.git
 cd mulesoft-anypoint-platform
-pip install -r requirements.txt
+python -m venv .venv
+# Windows PowerShell
+.venv\Scripts\Activate.ps1
+# macOS / Linux
+# source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
 cp .env.example .env
 ```
+
+All dependencies, including `pytest` and `pytest-asyncio`, are installed into `.venv`, so no global installation is required.
 
 Set the following values in `.env`:
 
